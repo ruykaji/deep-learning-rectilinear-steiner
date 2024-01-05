@@ -1,20 +1,21 @@
-__all__ = ["plot_evaluations"]
+__all__ = ["plot_train"]
 
 import os
-import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 
 
-def plot_evaluations(path_to_evaluations: str = None, save_path: str = None):
+def plot_train(path_to_train_csv: str = None, save_path: str = None):
     """
     Plots evaluations data.
 
-    :param path_to_evaluations: Path to folder with experiment/evaluations.npz folders.
+    :param path_to_train_csv: Path to folder with experiment/progress.csv folders.
     :param save_path: Path to save plot.
     """
 
-    if (path_to_evaluations != None and os.path.exists(path_to_evaluations)):
-        dirs = os.listdir(path_to_evaluations)
+    if (path_to_train_csv != None and os.path.exists(path_to_train_csv)):
+        dirs = os.listdir(path_to_train_csv)
+        legend = []
 
         if (len(dirs) != 0):
             plt.xlabel('Timesteps')
@@ -22,15 +23,15 @@ def plot_evaluations(path_to_evaluations: str = None, save_path: str = None):
             plt.title('Evaluation Results Over Time')
 
             for dir in dirs:
-                data = np.load(os.path.join(path_to_evaluations, dir, "evaluations.npz"), allow_pickle=True)
-                evaluation_results = data['results']
-                evaluation_timesteps = data['timesteps']
+                if(os.path.isdir(os.path.join(path_to_train_csv, dir))):
+                    legend.append(dir)
+                    data = data = pd.read_csv(os.path.join(path_to_train_csv, dir, "progress.csv"))
+                    plt.plot(data['time/iterations'], data["rollout/ep_rew_mean"])
 
-                plt.legend(dir)
-                plt.plot(evaluation_timesteps, evaluation_results)
-
+            plt.legend(legend)
+            
             if (save_path != None):
-                plt.savefig(os.path.join(save_path, "evaluations.png"), dpi = 400)
+                plt.savefig(os.path.join(save_path, "progress.png"), dpi = 400)
             else:
                 plt.show()
 

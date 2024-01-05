@@ -1,6 +1,7 @@
 import argparse
 from stable_baselines3 import PPO, DQN
 from stable_baselines3.common.env_util import make_vec_env
+from stable_baselines3.common.logger import configure
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.vec_env import VecTransposeImage
 
@@ -45,7 +46,7 @@ def main(args):
         log_folder = "./logs/" + key
 
         for grid_size in range(args.bot_grid_size, args.top_grid_size, 4):
-            experiment_folder = log_folder + "/grid_size_" + str(grid_size)
+            logger = configure(log_folder + "/grid_size_" + str(grid_size), ["stdout", "csv"])
 
             # Create environments
             env = make_vec_env(lambda: envs.Simple2DGridEnv(grid_size=grid_size), n_envs=args.num_envs)
@@ -55,10 +56,10 @@ def main(args):
             model = algo[key]("MlpPolicy", env)
 
             # Train and eval the model
-            model.learn(total_timesteps=args.total_timesteps, callback=EvalCallback(
-                eval_env, log_path=experiment_folder, best_model_save_path=experiment_folder, **hyperparams["eval"]))
+            model.set_logger(logger)
+            model.learn(total_timesteps=args.total_timesteps, callback=EvalCallback(eval_env, **hyperparams["eval"]))
 
-            utils.plot_evaluations(log_folder, log_folder)
+            utils.plot_train(log_folder, log_folder)
 
 
 if __name__ == '__main__':

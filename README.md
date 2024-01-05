@@ -33,7 +33,7 @@ This project focuses on training a reinforcement learning agent to find the opti
 To train the agent, run the script `train.py`. You can specify various parameters like grid size and total timesteps:
 
 ```bash
-python3 train.py --num_envs 16 --bot_grid_size 16 --top_grid_size 256 --total_timesteps 5e6
+python3 train.py --num_envs 16 --bot_grid_size 16 --top_grid_size 256 --total_timesteps 5000000
 ```
 
 ## Contributing
