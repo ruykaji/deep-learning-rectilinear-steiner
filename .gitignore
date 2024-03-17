@@ -1,2 +1,4 @@
+.vscode
+.clang-format
+build
 __pycache__
-logs
