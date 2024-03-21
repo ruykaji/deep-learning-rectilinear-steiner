@@ -35,73 +35,10 @@ struct Matrix_index
   }
 };
 
-using Matrix_shape = Matrix_index;
-
-template <typename Tp> class Matrix_iterator
+struct Matrix_shape
 {
-
-public:
-  typedef Tp value_type;
-  typedef Tp* pointer;
-  typedef Tp& reference;
-  typedef std::forward_iterator_tag iterator_category;
-  typedef std::ptrdiff_t difference_type;
-  typedef std::size_t size_type;
-
-  explicit Matrix_iterator(value_type* value, Matrix_index position, Matrix_shape shape)
-      : m_value(value), m_position(position), m_shape(shape){};
-
-  reference
-  operator*() noexcept
-  {
-    return *m_value;
-  }
-
-  pointer
-  operator->() noexcept
-  {
-    return m_value;
-  }
-
-  Matrix_iterator
-  operator++()
-  {
-    Matrix_iterator tmp(*this);
-    m_next();
-    return tmp;
-  }
-
-  Matrix_iterator&
-  operator++(int)
-  {
-    m_next();
-    return *this;
-  }
-
-private:
-  void
-  m_next()
-  {
-    if(++m_position.x == m_shape.x)
-      {
-        if(++m_position.y == m_shape.y)
-          {
-            m_value -= m_shape.x * m_shape.y - 1;
-            m_position.y = 0;
-          }
-        else
-          ++m_value;
-
-        m_position.x = 0;
-      }
-    else
-      ++m_value;
-  }
-
-private:
-  value_type* m_value;
-  Matrix_index m_position;
-  Matrix_shape m_shape;
+  uint32_t x;
+  uint32_t y;
 };
 
 template <typename Tp> class Matrix
@@ -115,7 +52,6 @@ public:
   typedef Tp value_type;
   typedef alloc allocator_type;
   typedef Tp& reference;
-  typedef Matrix_iterator<Tp> iterator;
   typedef std::size_t size_type;
   typedef std::ptrdiff_t difference_type;
 
@@ -140,13 +76,6 @@ public:
   Matrix&
   operator=(Matrix&&)
       = default;
-
-  iterator
-  at(Matrix_index idx) noexcept
-  {
-    size_type idx__ = idx.y * m_shape.x + idx.x;
-    return iterator(m_data + idx__, idx, m_shape);
-  }
 
   Matrix_shape
   shape() const noexcept
@@ -182,6 +111,7 @@ private:
   Matrix_shape m_shape;
   alloc m_alloc;
 };
-};
+
+}; // namespace gen
 
 #endif

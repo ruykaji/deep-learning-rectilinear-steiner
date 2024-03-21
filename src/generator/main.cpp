@@ -8,10 +8,10 @@
 
 struct Settings
 {
-  uint32_t data;
-  uint32_t width;
-  uint32_t height;
-  uint32_t points;
+  uint32_t data = 1;
+  uint32_t width = 32;
+  uint32_t height = 32;
+  uint32_t points = 5;
 };
 
 Settings
@@ -24,7 +24,7 @@ init(int32_t argc, char* const argv[])
     return true;
   };
 
-  Settings default__{ 1, 32, 32, 5 };
+  Settings s__;
 
   if(argc > 1)
     {
@@ -33,7 +33,7 @@ init(int32_t argc, char* const argv[])
           if(!strcmp(argv[i], "--length") || !strcmp(argv[i], "-l"))
             {
               if(i + 1 < argc && is_digit(argv[i + 1]))
-                default__.data = std::stoi(argv[i + 1]);
+                s__.data = std::stoi(argv[i + 1]);
               else
                 {
                   std::cout << "--length | -l expects 1 argument: " << argv[i] << '\n';
@@ -43,7 +43,7 @@ init(int32_t argc, char* const argv[])
           else if(!strcmp(argv[i], "--width") || !strcmp(argv[i], "-w"))
             {
               if(i + 1 < argc && is_digit(argv[i + 1]))
-                default__.width = std::stoi(argv[i + 1]);
+                s__.width = std::stoi(argv[i + 1]);
               else
                 {
                   std::cout << "--width | -w expects 1 argument: " << argv[i] << '\n';
@@ -53,7 +53,7 @@ init(int32_t argc, char* const argv[])
           else if(!strcmp(argv[i], "--height") || !strcmp(argv[i], "-h"))
             {
               if(i + 1 < argc && is_digit(argv[i + 1]))
-                default__.height = std::stoi(argv[i + 1]);
+                s__.height = std::stoi(argv[i + 1]);
               else
                 {
                   std::cout << "--height | -h expects 1 argument: " << argv[i] << '\n';
@@ -63,7 +63,7 @@ init(int32_t argc, char* const argv[])
           else if(!strcmp(argv[i], "--points") || !strcmp(argv[i], "-p"))
             {
               if(i + 1 < argc && is_digit(argv[i + 1]))
-                default__.points = std::stoi(argv[i + 1]);
+                s__.points = std::stoi(argv[i + 1]);
               else
                 {
                   std::cout << "--points | -p expects 1 argument: " << argv[i] << '\n';
@@ -78,7 +78,7 @@ init(int32_t argc, char* const argv[])
         }
     }
 
-  return default__;
+  return s__;
 }
 
 int
@@ -94,13 +94,12 @@ main(int argc, char* const argv[])
 
       for(uint32_t j = 0; j < s__.points; ++j)
         {
-          terminals__.emplace_back(gen::random_point(s__.width, s__.width));
-          matrix__[terminals__.back()] = 1;
+          gen::Matrix_index index{ gen::random(1U, s__.width - 1), gen::random(1U, s__.height - 1) };
+          matrix__[index] = 1;
+          terminals__.emplace_back(std::move(index));
         }
 
-      gen::preprocess(matrix__, terminals__);
-
-      std::cout << matrix__;
+      auto pair = gen::Process::propagate(matrix__, terminals__);
     }
 
   return 0;
