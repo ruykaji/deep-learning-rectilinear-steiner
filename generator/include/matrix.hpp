@@ -63,9 +63,35 @@ public:
       alloc_traits::construct(m_alloc, m_data + i, 0);
   };
 
+  Matrix(const Matrix&) = delete;
+
+  Matrix(Matrix&& matrix)
+  {
+    m_data = matrix.m_data;
+    m_shape = matrix.m_shape;
+
+    matrix.m_data = nullptr;
+    matrix.m_shape = {};
+  }
+
   ~Matrix()
   {
     alloc_traits::deallocate(m_alloc, m_data, m_shape.x * m_shape.y + 1);
+  }
+
+  Matrix&
+  operator=(const Matrix&)
+      = delete;
+
+  Matrix&
+  operator=(Matrix&&)
+      = delete;
+
+  reference
+  operator[](Index idx) noexcept
+  {
+    size_type idx__ = idx.y * m_shape.x + idx.x;
+    return m_data[idx__];
   }
 
   Shape
@@ -74,11 +100,20 @@ public:
     return m_shape;
   }
 
-  reference
-  operator[](Index idx) noexcept
+  friend double
+  operator/(const Matrix& lhs, const Matrix& rhs)
   {
-    size_type idx__ = idx.y * m_shape.x + idx.x;
-    return m_data[idx__];
+    std::size_t length__ = lhs.m_shape.x * lhs.m_shape.y + 1;
+    double sim_count__ = 0;
+
+    for(std::size_t i = 0; i < length__; ++i)
+      {
+        // Compare only positions that are both not equal zero.
+        if(lhs.m_data[i] == rhs.m_data[i] && (lhs.m_data[i] != 0 || rhs.m_data[i] != 0))
+          ++sim_count__;
+      }
+
+    return sim_count__ / length__;
   }
 
   friend std::ostream&

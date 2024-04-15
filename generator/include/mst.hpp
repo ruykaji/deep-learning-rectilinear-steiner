@@ -107,21 +107,15 @@ make_mst(const Graph& graph)
         }
     }
 
-  Edge edge__{};
-  uint32_t weight__{};
-  std::size_t dest__{};
-  std::size_t source__{};
-  std::size_t prev_source__{};
-
   while(true)
     {
-      edge__ = queue__.top();
+      Edge edge__ = queue__.top();
       queue__.pop();
 
-      weight__ = edge__.m_weight;
-      dest__ = edge__.m_destination;
-      source__ = edge__.m_source;
-      prev_source__ = edge__.m_prev_source;
+      uint32_t weight__ = edge__.m_weight;
+      std::size_t dest__ = edge__.m_destination;
+      std::size_t source__ = edge__.m_source;
+      std::size_t prev_source__ = edge__.m_prev_source;
 
       if(s_sources__[dest__ - 1] == 0)
         {
@@ -153,17 +147,13 @@ make_mst(const Graph& graph)
     }
 
   MST mst__{};
-  std::size_t source__{};
-  std::size_t dest__{};
-  std::size_t prev_source__{};
-  std::size_t prev_dest__{};
 
   for(const auto& edge__ : mst_edges__)
     {
-      source__ = edge__.m_source;
-      dest__ = edge__.m_destination;
-      prev_source__ = edge__.m_prev_source;
-      prev_dest__ = edge__.m_prev_destination;
+      std::size_t source__ = edge__.m_source;
+      std::size_t dest__ = edge__.m_destination;
+      std::size_t prev_source__ = edge__.m_prev_source;
+      std::size_t prev_dest__ = edge__.m_prev_destination;
 
       if(prev_source__ == 0 && prev_dest__ == 0)
         mst__.push_back(std::make_pair(source__, dest__));
