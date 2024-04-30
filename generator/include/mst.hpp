@@ -5,6 +5,7 @@
 #include <unordered_map>
 
 #include "graph.hpp"
+#include "matrix.hpp"
 
 namespace gen
 {
@@ -77,7 +78,7 @@ private:
 } // namespace details
 
 MST
-make_mst(const Graph& graph)
+make_mst(const Graph& graph, const std::vector<Index>& nodes)
 {
   static std::vector<std::size_t> s_lengths__{};
   static std::vector<std::size_t> s_sources__{};
@@ -195,6 +196,61 @@ make_mst(const Graph& graph)
     }
 
   return mst__;
+}
+
+Matrix
+make_rectilinear_mst(const Matrix& matrix, const std::vector<Index>& terminals)
+{
+  Shape shape__ = matrix.shape();
+
+  Index mean_idx__{};
+  uint32_t min_x__ = shape__.x;
+  uint32_t max_x__ = 0;
+  double min_mean_distance__ = __DBL_MAX__;
+
+  for(auto t1__ : terminals)
+    {
+      double mean_distance__ = 0;
+
+      for(auto t2__ : terminals)
+        if(t1__ != t2__)
+          mean_distance__ += t1__.y > t2__.y ? (t1__.y - t2__.y) : (t2__.y - t1__.y);
+
+      mean_distance__ = mean_distance__ / terminals.size() - 1;
+
+      if(mean_distance__ < min_mean_distance__)
+        {
+          min_mean_distance__ = mean_distance__;
+          mean_idx__ = t1__;
+        }
+
+      min_x__ = std::min(t1__.x, min_x__);
+      max_x__ = std::max(t1__.x, max_x__);
+    }
+
+  Matrix mst_matrix__{ shape__ };
+
+  for(auto t__ : terminals)
+    {
+      if(t__ != mean_idx__)
+        if(t__.y > mean_idx__.y)
+          while(t__.y >= mean_idx__.y)
+            {
+              mst_matrix__[t__] = 1;
+              t__ -= { 0, 1 };
+            }
+        else
+          while(t__.y <= mean_idx__.y)
+            {
+              mst_matrix__[t__] = 1;
+              t__ += { 0, 1 };
+            }
+    }
+
+  for(Index itr__{ min_x__, mean_idx__.y }, end__{ max_x__, mean_idx__.y }; itr__ <= end__; itr__ += { 1, 0 })
+    mst_matrix__[itr__] = 1;
+
+  return mst_matrix__;
 }
 
 } // namespace gen

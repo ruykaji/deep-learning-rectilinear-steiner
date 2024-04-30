@@ -1,4 +1,4 @@
-.vscode
-.clang-format
-build
+assets
 __pycache__
+*.pth
+*.png

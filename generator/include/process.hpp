@@ -17,10 +17,10 @@ class Process
   static constexpr uint8_t TERMINAL_CELL = 1;
   static constexpr uint8_t INTERSECTION_CELL = 4;
 
+public:
   inline static std::vector<Index> s_nodes{};
   inline static Shape s_shape{};
 
-public:
   static void
   set_shape(Shape shape)
   {
@@ -36,18 +36,18 @@ public:
     for(auto t__ : terminals)
       matrix__[t__] = TERMINAL_CELL;
 
+    // Makes traces on matrix's borders.
+    m_make_trace(matrix__, { 0, 0 }, { 0, s_shape.y - 1 }, { 0, 1 });
+    m_make_trace(matrix__, { s_shape.x - 1, 0 }, { s_shape.x - 1, s_shape.y - 1 }, { 0, 1 });
+    m_make_trace(matrix__, { 0, 0 }, { s_shape.x - 1, 0 }, { 1, 0 });
+    m_make_trace(matrix__, { 0, s_shape.y - 1 }, { s_shape.x - 1, s_shape.y - 1 }, { 1, 0 });
+
     for(auto t__ : terminals)
       {
         // Makes traces in x and y direction through terminal point.
         m_make_trace(matrix__, { t__.x, 0 }, { t__.x, s_shape.y - 1 }, { 0, 1 });
         m_make_trace(matrix__, { 0, t__.y }, { s_shape.x - 1, t__.y }, { 1, 0 });
       }
-
-    // Makes traces on matrix's borders.
-    m_make_trace(matrix__, { 0, 0 }, { 0, s_shape.y - 1 }, { 0, 1 });
-    m_make_trace(matrix__, { s_shape.x - 1, 0 }, { s_shape.x - 1, s_shape.y - 1 }, { 0, 1 });
-    m_make_trace(matrix__, { 0, 0 }, { s_shape.x - 1, 0 }, { 1, 0 });
-    m_make_trace(matrix__, { 0, s_shape.y - 1 }, { s_shape.x - 1, s_shape.y - 1 }, { 1, 0 });
 
     return matrix__;
   }

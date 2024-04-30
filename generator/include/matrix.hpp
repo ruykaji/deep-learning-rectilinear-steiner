@@ -22,6 +22,36 @@ struct Index
     return *this;
   }
 
+  Index&
+  operator-=(const Index& rhs)
+  {
+    x -= rhs.x;
+    y -= rhs.y;
+    return *this;
+  }
+
+  friend Index
+  operator+(const Index& lhs, const Index& rhs)
+  {
+    Index tmp__{};
+
+    tmp__.x = lhs.x + rhs.x;
+    tmp__.y = rhs.y + lhs.y;
+
+    return tmp__;
+  }
+
+  friend Index
+  operator-(const Index& lhs, const Index& rhs)
+  {
+    Index tmp__{};
+
+    tmp__.x = lhs.x - rhs.x;
+    tmp__.y = lhs.y - rhs.y;
+
+    return tmp__;
+  }
+
   friend bool
   operator<=(const Index& lhs, const Index& rhs)
   {
@@ -50,6 +80,7 @@ public:
   typedef uint32_t value_type;
   typedef alloc allocator_type;
   typedef uint32_t& reference;
+  typedef const uint32_t& const_reference;
   typedef std::size_t size_type;
   typedef std::ptrdiff_t difference_type;
 
@@ -88,7 +119,14 @@ public:
       = delete;
 
   reference
-  operator[](Index idx) noexcept
+  operator[](const Index& idx) noexcept
+  {
+    size_type idx__ = idx.y * m_shape.x + idx.x;
+    return m_data[idx__];
+  }
+
+  const_reference
+  operator[](const Index& idx) const noexcept
   {
     size_type idx__ = idx.y * m_shape.x + idx.x;
     return m_data[idx__];
@@ -108,8 +146,7 @@ public:
 
     for(std::size_t i = 0; i < length__; ++i)
       {
-        // Compare only positions that are both not equal zero.
-        if(lhs.m_data[i] == rhs.m_data[i] && (lhs.m_data[i] != 0 || rhs.m_data[i] != 0))
+        if(lhs.m_data[i] == rhs.m_data[i])
           ++sim_count__;
       }
 
