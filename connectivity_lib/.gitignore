@@ -1,0 +1,4 @@
+build
+dist
+connectivity_module.egg-info
+*.so
