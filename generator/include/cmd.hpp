@@ -32,15 +32,15 @@ show_version()
 void
 show_usage(std::string_view name)
 {
-  std::cerr << "Usage: " << name << " <options>\n"
+  std::cerr << "Usage: " << name << " <options>\n\n"
             << "Options:\n"
-            << "\t--path <string>    Path to generated data\n"
-            << "\t--length <number>    Number of matrices to generate\n"
-            << "\t--width <number>     Width of each matrix\n"
-            << "\t--height <number>    Height of each matrix\n"
-            << "\t--points <number>    Number of terminal points per matrix\n"
-            << "\t-h, --help           Show this help message\n"
-            << "\t-v, --version        Show version information\n";
+            << "  --path <string>      Path to generated data\n"
+            << "  --skip <number>      Number of cases to skip\n"
+            << "  --width <number>     Width of each matrix\n"
+            << "  --height <number>    Height of each matrix\n"
+            << "  --points <number>    Number of terminal points per matrix\n"
+            << "  -h, --help           Show this help message\n"
+            << "  -v, --version        Show version information\n";
 }
 
 } // namespace details
@@ -50,7 +50,7 @@ struct Settings
   std::string path = "";
   uint32_t width = 32;
   uint32_t height = 32;
-  std::size_t length = 10;
+  std::size_t skip = 10;
   std::size_t points = 5;
 };
 
@@ -89,13 +89,13 @@ arg_parse(int32_t argc, char* const argv[])
               exit(EXIT_FAILURE);
             }
         }
-      else if(arg == "--length")
+      else if(arg == "--skip")
         {
           if(i + 1 < argc && is_digit(argv[i + 1]))
-            s__.length = std::stoi(argv[++i]);
+            s__.skip = std::stoi(argv[++i]);
           else
             {
-              std::cerr << "--length option requires one numeric argument." << std::endl;
+              std::cerr << "--skip option requires one numeric argument." << std::endl;
               exit(EXIT_FAILURE);
             }
         }
@@ -151,7 +151,7 @@ public:
   step()
   {
     if(m_current_step < m_total_steps)
-      m_current_step++;
+      ++m_current_step;
     update();
   }
 
@@ -175,6 +175,12 @@ public:
 
     if(progress__ == 1.0)
       std::cout << std::endl;
+  }
+
+  std::size_t
+  get_step()
+  {
+    return m_current_step;
   }
 
 private:

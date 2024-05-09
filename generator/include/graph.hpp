@@ -13,13 +13,17 @@ struct Edge
   uint32_t m_weight;
   std::size_t m_source;
   std::size_t m_destination;
-  std::size_t m_prev_source;
-  std::size_t m_prev_destination;
 
   friend bool
   operator>(const Edge& lhs, const Edge& rhs)
   {
     return lhs.m_weight > rhs.m_weight;
+  }
+
+  friend bool
+  operator==(const Edge& lhs, const Edge& rhs)
+  {
+    return lhs.m_source == rhs.m_source && rhs.m_destination == lhs.m_destination;
   }
 };
 

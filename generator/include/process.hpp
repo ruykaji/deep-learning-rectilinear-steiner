@@ -96,7 +96,7 @@ public:
                     queue__.push(x_itr__);
                   }
 
-                uint32_t distance__ = x_itr__.x - front__.x - 1;
+                uint32_t distance__ = x_itr__.x - front__.x;
 
                 // Connect source and destination nodes
                 graph__.m_adj[dest_idx__].emplace_back(distance__, dest_idx__ + 1, source_idx__ + 1);
@@ -133,7 +133,7 @@ public:
                     queue__.push(y_itr__);
                   }
 
-                uint32_t distance__ = y_itr__.y - front__.y - 1;
+                uint32_t distance__ = y_itr__.y - front__.y;
 
                 // Connect source and destination nodes
                 graph__.m_adj[dest_idx__].emplace_back(distance__, dest_idx__ + 1, source_idx__ + 1);

@@ -9,6 +9,45 @@
 #include "process.hpp"
 #include "utility.hpp"
 
+std::size_t
+factorial(uint32_t n)
+{
+  std::size_t result = 1;
+  for(uint32_t i__ = 2; i__ <= n; ++i__)
+    result *= i__;
+  return result;
+}
+
+std::size_t
+combinations(uint32_t n, uint32_t k)
+{
+  if(k > n)
+    return 0;
+
+  if(k == 0 || k == n)
+    return 1;
+
+  k = std::min(k, n - k);
+  std::size_t c = 1;
+
+  for(uint32_t i__ = 0; i__ < k; ++i__)
+    c = c * (n - i__) / (i__ + 1);
+
+  return c;
+}
+
+std::size_t
+total_combinations(uint32_t rows, uint32_t cols, std::size_t max_points)
+{
+  int32_t total_points = rows * cols;
+  std::size_t total = 0;
+
+  for(uint32_t i__ = 1; i__ <= max_points; ++i__)
+    total += combinations(total_points, i__);
+
+  return total;
+}
+
 // Simple constrains check.
 inline bool
 is_agreed(const std::vector<gen::Index>& terminals)
@@ -54,58 +93,84 @@ main(int argc, char* const argv[])
   gen::Process::set_shape({ s__.width, s__.height });
 
   // Initialize progress bar.
-  gen::Progress_bar progress_bar__{ s__.length, 75 };
+  gen::Progress_bar progress_bar__{ total_combinations(s__.width - 2, s__.height - 2, s__.points - 1), 75 };
 
   std::cout << "\nGeneration in progress...\n" << std::flush;
 
-  for(uint32_t i = 0; i < s__.length; ++i)
+  std::size_t counter__ = 0;
+  std::queue<std::vector<gen::Index>> combinations__;
+  combinations__.push({ gen::Index{ 1, 1 } });
+
+  while(!combinations__.empty())
     {
-      // Generate new terminals.
-      std::size_t points_number__ = gen::random(2UL, s__.points);
-      std::vector<gen::Index> terminals__{ points_number__, gen::Index{} };
+      std::vector<gen::Index> current__ = combinations__.front();
+      combinations__.pop();
 
-      bool is_agreed__ = false;
+      uint32_t start_x = current__.empty() ? 1 : current__.back().x;
+      uint32_t start_y = current__.empty() ? 1 : current__.back().y + 1;
 
-      do
+      for(uint32_t x__ = start_x; x__ < s__.width - 1; ++x__)
         {
-          for(uint32_t j = 0; j < points_number__; ++j)
-            terminals__[j] = gen::Index{ gen::random(1U, s__.width - 2), gen::random(1U, s__.height - 2) };
+          for(uint32_t y__ = (x__ == start_x ? start_y : 1); y__ < s__.height - 1; ++y__)
+            {
+              std::vector<gen::Index> new_combination__ = current__;
+              new_combination__.emplace_back(x__, y__);
+
+              if(is_agreed(new_combination__))
+                {
+
+                  if(new_combination__.size() != s__.points && counter__ % s__.skip == 0)
+                    {
+                      counter__ = 0;
+                      combinations__.push(new_combination__);
+
+                      // Process matrices.
+                      gen::Matrix matrix__ = gen::Process::propagate(new_combination__);
+                      gen::Graph graph__ = gen::Process::make_graph(matrix__);
+
+                      gen::MST mst__ = gen::make_mst(graph__);
+
+                      gen::Matrix mst_matrix__ = gen::Process::make_matrix(mst__);
+
+                      // gen::Matrix mst_matrix__ = gen::make_rectilinear_mst(matrix__, new_combination__);
+
+                      // std::cout << std::endl;
+                      // std::cout << matrix__;
+
+                      // std::cout << std::endl;
+                      // std::cout << mst_matrix__;
+
+                      // Save both matrices.
+                      std::ofstream out__{ root_path__ / ("data_" + std::to_string(progress_bar__.get_step() + 1)) };
+
+                      if(out__.is_open())
+                        {
+                          out__ << "SHAPE: " << s__.width << ' ' << s__.height << '\n' << std::flush;
+                          out__ << "TERMINALS: ";
+
+                          for(auto& t__ : new_combination__)
+                            out__ << t__.y << ' ' << t__.x << ' ';
+
+                          out__ << '\n' << std::flush;
+
+                          out__ << "INPUT:\n" << std::flush;
+                          out__ << matrix__;
+
+                          out__ << "OUTPUT:\n" << std::flush;
+                          out__ << mst_matrix__;
+                        }
+
+                      out__.close();
+                      all_matrix__.push_back(std::move(matrix__));
+                      progress_bar__.step();
+                    }
+
+                  ++counter__;
+                }
+            }
+
+          start_y = 0;
         }
-      while(!is_agreed(terminals__));
-
-      // Process matrices.
-      gen::Matrix matrix__ = gen::Process::propagate(terminals__);
-      // gen::Graph graph__ = gen::Process::make_graph(matrix__);
-
-      // gen::MST mst__ = gen::make_mst(graph__);
-
-      // gen::Matrix mst_matrix__ = gen::Process::make_matrix(mst__);
-
-      gen::Matrix mst_matrix__ = gen::make_rectilinear_mst(matrix__, terminals__);
-
-      // Save both matrices.
-      std::ofstream out__{ root_path__ / ("data_" + std::to_string(i + 1)) };
-
-      if(out__.is_open())
-        {
-          out__ << "SHAPE: " << s__.width << ' ' << s__.height << '\n' << std::flush;
-          out__ << "TERMINALS: ";
-
-          for(auto& t__ : terminals__)
-            out__ << t__.y << ' ' << t__.x << ' ';
-
-          out__ << '\n' << std::flush;
-          
-          out__ << "INPUT:\n" << std::flush;
-          out__ << matrix__;
-
-          out__ << "OUTPUT:\n" << std::flush;
-          out__ << mst_matrix__;
-        }
-
-      out__.close();
-      all_matrix__.push_back(std::move(matrix__));
-      progress_bar__.step();
     }
 
   // Find collisions between all created matrices.
