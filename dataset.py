@@ -6,12 +6,13 @@ from tqdm import tqdm
 
 
 class MatrixDataset(Dataset):
-    def __init__(self, folder_path):
+    def __init__(self, folder_path, terminals_align=20):
         super(MatrixDataset, self).__init__()
+        self.terminals_align = terminals_align
         self.data_files = []
         self.target_files = []
         self.terminals_files = []
-        self.transform = transforms.Compose([transforms.Resize(224, interpolation=transforms.InterpolationMode.NEAREST), transforms.Pad(16)])
+        self.transform = transforms.Compose([transforms.Resize(256, interpolation=transforms.InterpolationMode.NEAREST), transforms.Pad(0)])
 
         self.processed_folder = os.path.join(folder_path, 'processed')
         os.makedirs(self.processed_folder, exist_ok=True)
@@ -45,10 +46,8 @@ class MatrixDataset(Dataset):
         terminals = list(map(int, terminals_line.split(' ')[1:]))
         terminals = [len(terminals)] + terminals
 
-        if (terminals[0] < 20):
-            terminals += [0 for i in range(20 - terminals[0])]
-        elif (terminals[0] > 20):
-            print(terminals)
+        if (terminals[0] < 2 * self.terminals_align):
+            terminals += [0 for i in range(2 * self.terminals_align - terminals[0])]
 
         terminals_tensor = torch.tensor(terminals, dtype=torch.long)
 
@@ -66,7 +65,7 @@ class MatrixDataset(Dataset):
                     input_matrix.append(row)
                     i += 1
 
-                data_tensor = self.transform(torch.tensor(input_matrix, dtype=torch.float32).view(shape).unsqueeze(0) / 4.0)
+                data_tensor = self.transform(torch.tensor(input_matrix, dtype=torch.float32).view(shape).unsqueeze(0) / 325.0)
 
             elif content[i].strip() == "OUTPUT:":
                 output_matrix = []
