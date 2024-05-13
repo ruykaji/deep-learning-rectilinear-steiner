@@ -2,3 +2,4 @@ assets
 __pycache__
 *.pth
 *.png
+*.sh

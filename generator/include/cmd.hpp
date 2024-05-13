@@ -34,13 +34,14 @@ show_usage(std::string_view name)
 {
   std::cerr << "Usage: " << name << " <options>\n\n"
             << "Options:\n"
+            << "  --rectilinear <flag> Is rectilinear algorithm\n"
             << "  --path <string>      Path to generated data\n"
             << "  --skip <number>      Number of cases to skip\n"
             << "  --width <number>     Width of each matrix\n"
             << "  --height <number>    Height of each matrix\n"
             << "  --points <number>    Number of terminal points per matrix\n"
-            << "  -h, --help           Show this help message\n"
-            << "  -v, --version        Show version information\n";
+            << "  --help               Show this help message\n"
+            << "  --version            Show version information\n";
 }
 
 } // namespace details
@@ -69,12 +70,12 @@ arg_parse(int32_t argc, char* const argv[])
   for(int i = 1; i < argc; ++i)
     {
       std::string arg = argv[i];
-      if((arg == "-h") || (arg == "--help"))
+      if(arg == "--help")
         {
           details::show_usage(argv[0]);
           exit(EXIT_SUCCESS);
         }
-      else if((arg == "-v") || (arg == "--version"))
+      else if(arg == "--version")
         {
           details::show_version();
           exit(EXIT_SUCCESS);
@@ -136,6 +137,8 @@ arg_parse(int32_t argc, char* const argv[])
         }
     }
 
+  details::show_version();
+
   return s__;
 }
 
@@ -145,6 +148,11 @@ public:
   Progress_bar(std::size_t total, int32_t bar_width) : m_total_steps(total), m_current_step(0), m_start_time(), m_width(bar_width)
   {
     m_start_time = std::chrono::steady_clock::now(); // Record start time
+  }
+
+  ~Progress_bar()
+  {
+    std::cout << std::endl;
   }
 
   void
