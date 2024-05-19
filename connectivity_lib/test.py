@@ -19,6 +19,6 @@ grid = np.array([[[0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
                   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
                   ]])
 
-terminals = [[3, 0,1, 3,7, 14,12]]
+terminals = [[3, 0, 1, 3, 7, 14, 12]]
 
 print(cm.are_batches_terminals_connected(grid, terminals))  # Outputs True or False based on connectivity
