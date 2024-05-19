@@ -29,21 +29,22 @@ def visualize_results(val_dataset, model, name, device):
         output = model(data)
 
     output = torch.sigmoid(output)
-    output = torch.where(output > 0.25, 1.0, output * 0.0)
+    output = torch.where(output > 0.4, 1.0, output * 0.0)
 
-    output = TRANSFORM_NORMAL(output).squeeze().cpu().numpy()
-    target = TRANSFORM_NORMAL(target).squeeze().cpu().numpy()
-    data = TRANSFORM_NORMAL(data).squeeze().cpu().numpy()
+    output = (TRANSFORM_NORMAL(output).squeeze().permute(2, 1, 0).cpu().numpy() * 255).astype(int)
+    target = (TRANSFORM_NORMAL(target).squeeze().permute(2, 1, 0).cpu().numpy() * 255).astype(int)
+    data = (TRANSFORM_NORMAL(data).squeeze().permute(2, 1, 0).cpu().numpy() * 35).astype(int) * 7
+
 
     plt.figure(figsize=(12, 6))
     plt.subplot(1, 3, 1)
-    plt.imshow(data, cmap='gray')
+    plt.imshow(data)
     plt.title('Input')
     plt.subplot(1, 3, 2)
-    plt.imshow(target, cmap='gray')
+    plt.imshow(target)
     plt.title('Ground Truth')
     plt.subplot(1, 3, 3)
-    plt.imshow(output, cmap='gray')
+    plt.imshow(output)
     plt.title('Prediction')
     plt.savefig(os.path.join(SAVE_PATH, f'{name}.png'), dpi=400)
     plt.close()
@@ -88,7 +89,7 @@ def train_model(model, train_loader, val_loader, device, num_epochs, fold):
                     dice_loss += loss.item() * data.size(0)
 
                     outputs = torch.sigmoid(outputs)
-                    outputs = torch.where(outputs > 0.25, 1.0, outputs * 0.0).cpu().numpy()
+                    outputs = torch.where(outputs > 0.4, 1.0, outputs * 0.0).cpu().numpy()
                     connectivity_score += sum(cm.are_batches_terminals_connected(outputs, terminals.tolist()))
 
             train_loss /= len(train_loader.dataset)
@@ -105,8 +106,8 @@ def train_model(model, train_loader, val_loader, device, num_epochs, fold):
                 torch.save(model.state_dict(), best_model_path)
                 best_val_loss = connectivity_score
 
-                visualize_results(train_loader.dataset, model, "validation_example", device)
-                visualize_results(val_loader.dataset, model, "train_example", device)
+            visualize_results(train_loader.dataset, model, "validation_example", device)
+            visualize_results(val_loader.dataset, model, "train_example", device)
 
             scheduler.step()
             print()
@@ -132,8 +133,8 @@ def k_fold_training(dataset, model, device, k, num_epochs):
         train_subset = Subset(dataset, train_idx)
         val_subset = Subset(dataset, val_idx)
 
-        train_loader = DataLoader(train_subset, batch_size=64, shuffle=True)
-        val_loader = DataLoader(val_subset, batch_size=64, shuffle=False)
+        train_loader = DataLoader(train_subset, batch_size=128, shuffle=True)
+        val_loader = DataLoader(val_subset, batch_size=128, shuffle=False)
 
         train_model(fold_model, train_loader, val_loader, device, num_epochs, fold)
         return
@@ -153,7 +154,7 @@ if __name__ == "__main__":
         os.makedirs(SAVE_PATH)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = smp.Unet(encoder_name="efficientnet-b3", encoder_weights="imagenet", in_channels=1, classes=1).to(device)
+    model = smp.Unet(encoder_name="efficientnet-b3", encoder_weights="imagenet", in_channels=3, classes=3).to(device)
     dataset = MatrixDataset('./assets')
 
     k_fold_training(dataset, model, device, k=5, num_epochs=20)
