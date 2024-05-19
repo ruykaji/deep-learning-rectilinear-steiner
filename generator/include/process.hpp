@@ -2,6 +2,7 @@
 #define __PROCESS_HPP__
 
 #include <queue>
+#include <tuple>
 #include <vector>
 
 #include "graph.hpp"
@@ -10,6 +11,8 @@
 
 namespace gen
 {
+
+typedef std::tuple<uint8_t, uint8_t, uint8_t> RGB;
 
 class Process
 {
@@ -30,7 +33,7 @@ public:
     s_shape = shape;
   }
 
-  static Matrix
+  static std::pair<Matrix, bool>
   propagate(Matrix matrix, const std::vector<std::vector<Index>>& nets, const std::size_t i)
   {
 
@@ -64,6 +67,8 @@ public:
 
     for(auto t__ : nets[i])
       {
+        std::size_t count = 0;
+
         // Makes traces in x and y direction through terminal point.
         for(uint32_t z__ = 0; z__ < s_shape.z; ++z__)
           {
@@ -72,27 +77,33 @@ public:
                 matrix[t__ + Index{ 0, 0, z__ }] = INTERSECTION_VIA_CELL;
               }
 
-            m_make_trace(matrix, { t__.x, 0, z__ }, { t__.x, s_shape.y - 1, z__ }, { 0, 1, 0 });
-            m_make_trace(matrix, { 0, t__.y, z__ }, { s_shape.x - 1, t__.y, z__ }, { 1, 0, 0 });
+            count += m_make_trace(matrix, { t__.x, 0, z__ }, { t__.x, s_shape.y - 1, z__ }, { 0, 1, 0 });
+            count += m_make_trace(matrix, { 0, t__.y, z__ }, { s_shape.x - 1, t__.y, z__ }, { 1, 0, 0 });
+          }
+
+        if(count == 0)
+          {
+            return std::make_pair(matrix, false);
           }
       }
 
     matrix.zero_all(PATH_CELL);
 
-    return matrix;
+    return std::make_pair(matrix, true);
   }
 
   static Graph
-  make_graph(const Matrix& matrix)
+  make_graph(const Matrix& matrix, const Index& start)
   {
     s_nodes.clear();
 
     Graph graph__{};
 
     // Initialize with top left corner as it always is intersection node
-    Index itr__{ 0, 0, 0 };
+    Index itr__ = start;
     s_nodes.push_back(itr__);
     graph__.m_adj.push_back({});
+    graph__.m_terminals.insert(1);
 
     std::queue<Index> queue__{};
     queue__.push(itr__);
@@ -105,119 +116,201 @@ public:
         std::size_t source_idx__ = find_index(s_nodes.begin(), s_nodes.end(), front__);
 
         // Searching for intersection or terminal node in x direction.
-        Index x_itr__ = front__;
+        itr__ = front__;
 
-        while(true)
+        while(itr__.x != s_shape.x - 1)
           {
-            x_itr__ += { 1, 0, 0 };
+            itr__ += { 1, 0, 0 };
 
-            // Break if reached border of a matrix;
-            if(x_itr__.x == s_shape.x)
-              break;
+            std::size_t dest_idx__ = find_index(s_nodes.begin(), s_nodes.end(), itr__);
 
-            if(matrix[x_itr__] == INTERSECTION_VIA_CELL || matrix[x_itr__] == INTERSECTION_CELL || matrix[x_itr__] == TERMINAL_CELL)
+            if(matrix[itr__] == INTERSECTION_VIA_CELL || matrix[itr__] == INTERSECTION_CELL || matrix[itr__] == TERMINAL_CELL)
               {
-                std::size_t dest_idx__ = find_index(s_nodes.begin(), s_nodes.end(), x_itr__);
-
                 // If node haven't been visited then add it to the queue
                 if(dest_idx__ == s_nodes.size())
                   {
-                    s_nodes.push_back(x_itr__);
+                    s_nodes.push_back(itr__);
                     graph__.m_adj.push_back({});
 
-                    queue__.push(x_itr__);
+                    queue__.push(itr__);
                   }
 
-                uint32_t distance__ = x_itr__.x - front__.x;
+                uint32_t distance__ = itr__.x - front__.x;
 
                 // Connect source and destination nodes
+
                 graph__.m_adj[dest_idx__].emplace_back(distance__, dest_idx__ + 1, source_idx__ + 1);
                 graph__.m_adj[source_idx__].emplace_back(distance__, source_idx__ + 1, dest_idx__ + 1);
 
-                if(matrix[x_itr__] == TERMINAL_CELL)
+                if(matrix[itr__] == TERMINAL_CELL)
                   {
                     graph__.m_terminals.insert(dest_idx__ + 1);
                   }
+              }
+          }
 
-                break;
+        itr__ = front__;
+
+        while(itr__.x != 0)
+          {
+            itr__ -= { 1, 0, 0 };
+
+            std::size_t dest_idx__ = find_index(s_nodes.begin(), s_nodes.end(), itr__);
+            if(matrix[itr__] == INTERSECTION_VIA_CELL || matrix[itr__] == INTERSECTION_CELL || matrix[itr__] == TERMINAL_CELL)
+              {
+                // If node haven't been visited then add it to the queue
+                if(dest_idx__ == s_nodes.size())
+                  {
+                    s_nodes.push_back(itr__);
+                    graph__.m_adj.push_back({});
+
+                    queue__.push(itr__);
+                  }
+
+                uint32_t distance__ = front__.x - itr__.x;
+
+                // Connect source and destination nodes
+
+                graph__.m_adj[dest_idx__].emplace_back(distance__, dest_idx__ + 1, source_idx__ + 1);
+                graph__.m_adj[source_idx__].emplace_back(distance__, source_idx__ + 1, dest_idx__ + 1);
+
+                if(matrix[itr__] == TERMINAL_CELL)
+                  {
+                    graph__.m_terminals.insert(dest_idx__ + 1);
+                  }
               }
           }
 
         // Searching for intersection or terminal node in y direction.
-        Index y_itr__ = front__;
+        itr__ = front__;
 
-        while(true)
+        while(itr__.y != s_shape.y - 1)
           {
-            y_itr__ += { 0, 1, 0 };
+            itr__ += { 0, 1, 0 };
 
-            // Break if reached border of a matrix;
-            if(y_itr__.y == s_shape.y)
-              break;
-
-            if(matrix[y_itr__] == INTERSECTION_VIA_CELL || matrix[y_itr__] == INTERSECTION_CELL || matrix[y_itr__] == TERMINAL_CELL)
+            std::size_t dest_idx__ = find_index(s_nodes.begin(), s_nodes.end(), itr__);
+            if(matrix[itr__] == INTERSECTION_VIA_CELL || matrix[itr__] == INTERSECTION_CELL || matrix[itr__] == TERMINAL_CELL)
               {
-                std::size_t dest_idx__ = find_index(s_nodes.begin(), s_nodes.end(), y_itr__);
-
                 // If node haven't been visited then add it to the queue
                 if(dest_idx__ == s_nodes.size())
                   {
-                    s_nodes.push_back(y_itr__);
+                    s_nodes.push_back(itr__);
                     graph__.m_adj.push_back({});
 
-                    queue__.push(y_itr__);
+                    queue__.push(itr__);
                   }
 
-                uint32_t distance__ = y_itr__.y - front__.y;
+                uint32_t distance__ = itr__.y - front__.y;
 
                 // Connect source and destination nodes
+
                 graph__.m_adj[dest_idx__].emplace_back(distance__, dest_idx__ + 1, source_idx__ + 1);
                 graph__.m_adj[source_idx__].emplace_back(distance__, source_idx__ + 1, dest_idx__ + 1);
 
-                if(matrix[y_itr__] == TERMINAL_CELL)
+                if(matrix[itr__] == TERMINAL_CELL)
                   {
                     graph__.m_terminals.insert(dest_idx__ + 1);
                   }
+              }
+          }
 
-                break;
+        itr__ = front__;
+
+        while(itr__.y != 0)
+          {
+            itr__ -= { 0, 1, 0 };
+
+            std::size_t dest_idx__ = find_index(s_nodes.begin(), s_nodes.end(), itr__);
+
+            if(matrix[itr__] == INTERSECTION_VIA_CELL || matrix[itr__] == INTERSECTION_CELL || matrix[itr__] == TERMINAL_CELL)
+              {
+                // If node haven't been visited then add it to the queue
+                if(dest_idx__ == s_nodes.size())
+                  {
+                    s_nodes.push_back(itr__);
+                    graph__.m_adj.push_back({});
+
+                    queue__.push(itr__);
+                  }
+
+                uint32_t distance__ = front__.y - itr__.y;
+
+                // Connect source and destination nodes
+
+                graph__.m_adj[dest_idx__].emplace_back(distance__, dest_idx__ + 1, source_idx__ + 1);
+                graph__.m_adj[source_idx__].emplace_back(distance__, source_idx__ + 1, dest_idx__ + 1);
+
+                if(matrix[itr__] == TERMINAL_CELL)
+                  {
+                    graph__.m_terminals.insert(dest_idx__ + 1);
+                  }
               }
           }
 
         // Searching for intersection or terminal node in z direction.
-        Index z_itr__ = front__;
+        itr__ = front__;
 
-        while(true)
+        while(itr__.z != s_shape.z - 1)
           {
-            z_itr__ += { 0, 0, 1 };
+            itr__ += { 0, 0, 1 };
 
-            // Break if reached border of a matrix;
-            if(z_itr__.z == s_shape.z)
-              break;
+            std::size_t dest_idx__ = find_index(s_nodes.begin(), s_nodes.end(), itr__);
 
-            if(matrix[z_itr__] == INTERSECTION_VIA_CELL || matrix[z_itr__] == INTERSECTION_CELL || matrix[z_itr__] == TERMINAL_CELL)
+            if(matrix[itr__] == INTERSECTION_VIA_CELL || matrix[itr__] == INTERSECTION_CELL || matrix[itr__] == TERMINAL_CELL)
               {
-                std::size_t dest_idx__ = find_index(s_nodes.begin(), s_nodes.end(), z_itr__);
-
                 // If node haven't been visited then add it to the queue
                 if(dest_idx__ == s_nodes.size())
                   {
-                    s_nodes.push_back(z_itr__);
+                    s_nodes.push_back(itr__);
                     graph__.m_adj.push_back({});
 
-                    queue__.push(z_itr__);
+                    queue__.push(itr__);
                   }
 
-                uint32_t distance__ = z_itr__.z - front__.z + (s_shape.x + s_shape.y) / 4;
+                uint32_t distance__ = itr__.z - front__.z;
 
                 // Connect source and destination nodes
+
                 graph__.m_adj[dest_idx__].emplace_back(distance__, dest_idx__ + 1, source_idx__ + 1);
                 graph__.m_adj[source_idx__].emplace_back(distance__, source_idx__ + 1, dest_idx__ + 1);
 
-                if(matrix[z_itr__] == TERMINAL_CELL)
+                if(matrix[itr__] == TERMINAL_CELL)
                   {
                     graph__.m_terminals.insert(dest_idx__ + 1);
                   }
+              }
+          }
 
-                break;
+        itr__ = front__;
+
+        while(itr__.z != 0)
+          {
+            itr__ -= { 0, 0, 1 };
+
+            std::size_t dest_idx__ = find_index(s_nodes.begin(), s_nodes.end(), itr__);
+
+            if(matrix[itr__] == INTERSECTION_VIA_CELL || matrix[itr__] == INTERSECTION_CELL || matrix[itr__] == TERMINAL_CELL)
+              {
+                // If node haven't been visited then add it to the queue
+                if(dest_idx__ == s_nodes.size())
+                  {
+                    s_nodes.push_back(itr__);
+                    graph__.m_adj.push_back({});
+
+                    queue__.push(itr__);
+                  }
+
+                uint32_t distance__ = front__.z - itr__.z;
+
+                // Connect source and destination nodes
+
+                graph__.m_adj[dest_idx__].emplace_back(distance__, dest_idx__ + 1, source_idx__ + 1);
+                graph__.m_adj[source_idx__].emplace_back(distance__, source_idx__ + 1, dest_idx__ + 1);
+
+                if(matrix[itr__] == TERMINAL_CELL)
+                  {
+                    graph__.m_terminals.insert(dest_idx__ + 1);
+                  }
               }
           }
       }
@@ -257,13 +350,13 @@ public:
   static Matrix
   map_nets(const std::vector<gen::Matrix>& matrices)
   {
-    Matrix mapped_matrix__{ Shape{ s_shape.x, s_shape.y, 1 } };
+    Matrix mapped_matrix__{ Shape{ s_shape.x, s_shape.y, 3 } };
 
     Index itr__{ 0, 0 };
 
     while(itr__.y != s_shape.y)
       {
-        std::vector<uint32_t> values__(s_shape.z * 2, 0);
+        std::vector<uint32_t> values__(6, 0);
 
         for(uint32_t z__ = 0; z__ < s_shape.z; ++z__)
           {
@@ -271,14 +364,19 @@ public:
               {
                 if(matrices[m__][itr__ + Index{ 0, 0, z__ }] != 0)
                   {
-                    values__[z__ * 2] = m__ + 1;
-                    values__[z__ * 2 + 1] = matrices[m__][itr__ + Index{ 0, 0, z__ }] - 1;
+                    values__[z__ * 2] = m__;
+                    values__[z__ * 2 + 1] = matrices[m__][itr__ + Index{ 0, 0, z__ }];
                     break;
                   }
               }
           }
 
-        mapped_matrix__[itr__] = map_integers_to_float(values__);
+        RGB rgb__ = map_integers_to_float(values__);
+
+        mapped_matrix__[itr__] = std::get<0>(rgb__);
+        mapped_matrix__[itr__ + Index{ 0, 0, 1 }] = std::get<1>(rgb__);
+        mapped_matrix__[itr__ + Index{ 0, 0, 2 }] = std::get<2>(rgb__);
+
         itr__.x += 1;
 
         if(itr__.x == s_shape.x)
@@ -292,17 +390,17 @@ public:
   }
 
 private:
-  static void
+  static int8_t
   m_make_trace(Matrix& matrix, Index first, Index last, Index step)
   {
     if(matrix[first] == INTERSECTION_CELL || matrix[first] == INTERSECTION_VIA_CELL)
-      return;
+      return 0;
 
     for(Index i__ = first; i__ <= last; i__ += step)
       {
         if(matrix[i__] == PATH_CELL)
           {
-            return;
+            return 0;
           }
       }
 
@@ -319,32 +417,20 @@ private:
             value__ = INTERSECTION_CELL;
           }
       }
+
+    return 1;
   }
 
-  static uint32_t
+  static RGB
   map_integers_to_float(const std::vector<uint32_t>& values)
   {
-    if(values.size() == 4)
-      {
-        uint32_t adjusted_a = values[0];
-        uint32_t adjusted_b = values[1];
-        uint32_t adjusted_c = values[2];
-        uint32_t adjusted_d = values[3];
+    uint8_t r = values[0] * 10 + values[1];
+    uint8_t g = values[2] * 10 + values[3];
+    uint8_t b = values[4] * 10 + values[5];
 
-        uint32_t unique_int = adjusted_a * 125 + adjusted_b * 25 + adjusted_c * 5 + adjusted_d * 1; // 5^3 = 125, 5^2 = 25, 5^1 = 5, 5^0 = 1
-        return unique_int;
-      }
-    else
-      {
-        uint32_t adjusted_a = values[0];
-        uint32_t adjusted_b = values[1];
-
-        uint32_t unique_int = adjusted_a * 125 + adjusted_b * 25;
-        return unique_int;
-      }
+    return std::make_tuple(r, g, b);
   }
 };
-
 }; // namespace gen
 
 #endif

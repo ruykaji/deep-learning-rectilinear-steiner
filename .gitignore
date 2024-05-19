@@ -1,5 +1,6 @@
 assets
 __pycache__
+results
 *.pth
 *.png
 *.sh

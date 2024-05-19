@@ -51,8 +51,8 @@ struct Settings
   std::string path = "";
   uint32_t width = 32;
   uint32_t height = 32;
-  std::size_t skip = 10;
-  std::size_t points = 5;
+  std::size_t skip = 55;
+  std::size_t points = 10;
 };
 
 Settings

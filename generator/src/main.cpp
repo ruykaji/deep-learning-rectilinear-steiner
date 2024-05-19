@@ -71,20 +71,30 @@ is_agreed(const std::vector<gen::Index>& terminals)
 }
 
 std::vector<std::vector<gen::Index>>
-split_by_nets(const std::vector<gen::Index> vec)
+split_by_nets(std::vector<gen::Index> vec)
 {
   std::vector<std::vector<gen::Index>> nets__{};
 
-  if(vec.size() >= 4)
+  if(vec.size() > 3)
     {
-      std::size_t split_by__ = vec.size() / 2;
+      int64_t seed = std::chrono::system_clock::now().time_since_epoch().count();
+      std::shuffle(vec.begin(), vec.end(), std::default_random_engine(seed));
 
-      nets__.emplace_back(vec.begin(), vec.begin() + split_by__);
-      nets__.emplace_back(vec.begin() + split_by__, vec.end());
+      for(std::size_t i__ = 0, end__ = vec.size(); i__ < end__; i__ += 2)
+        {
+          if(i__ + 2 < end__)
+            {
+              nets__.push_back({ vec.begin() + i__, vec.begin() + i__ + 2 });
+            }
+          else if(i__ < end__ && end__ - i__ > 2)
+            {
+              nets__.push_back({ vec.begin() + i__, vec.end() });
+            }
+        }
     }
   else
     {
-      nets__.emplace_back(vec);
+      nets__.push_back(vec);
     }
 
   return nets__;
@@ -107,7 +117,7 @@ main(int argc, char* const argv[])
   std::filesystem::create_directory(root_path__);
 
   // Set shape of matrices that will be generated.
-  gen::Process::set_shape({ s__.width, s__.height, 1 });
+  gen::Process::set_shape({ s__.width, s__.height, 3 });
 
   // Initialize progress bar.
   gen::Progress_bar progress_bar__{ total_combinations(s__.width - 2, s__.height - 2, s__.points - 1), 75 };
@@ -137,6 +147,7 @@ main(int argc, char* const argv[])
                 {
                   if(new_combination__.size() != s__.points && counter__ % s__.skip == 0)
                     {
+                      bool skip__ = false;
                       counter__ = 0;
                       combinations__.push(new_combination__);
 
@@ -147,12 +158,24 @@ main(int argc, char* const argv[])
 
                       for(std::size_t i__ = 0, end__ = nets__.size(); i__ < end__; ++i__)
                         {
-                          gen::Matrix matrix__ = gen::Process::propagate(output_matrix__, nets__, i__);
-                          gen::Graph graph__ = gen::Process::make_graph(matrix__);
+                          auto [matrix__, is_made__] = gen::Process::propagate(output_matrix__, nets__, i__);
+
+                          if(!is_made__)
+                            {
+                              skip__ = true;
+                              break;
+                            }
+
+                          gen::Graph graph__ = gen::Process::make_graph(matrix__, nets__[i__][0]);
                           gen::MST mst__ = gen::make_mst(graph__);
 
                           output_matrix__ += gen::Process::make_matrix(mst__);
                           nets_matrices__.emplace_back(matrix__);
+                        }
+
+                      if(skip__)
+                        {
+                          continue;
                         }
 
                       gen::Matrix input_matrix = gen::Process::map_nets(nets_matrices__);
@@ -162,11 +185,20 @@ main(int argc, char* const argv[])
 
                       if(out__.is_open())
                         {
-                          out__ << "SHAPE: " << s__.width << ' ' << s__.height << '\n' << std::flush;
-                          out__ << "TERMINALS: ";
+                          out__ << "SHAPE: " << uint32_t(3) << ' ' << s__.width << ' ' << s__.height << '\n'  << std::flush;
+                          out__ << "NETS: ";
 
-                          for(auto& t__ : new_combination__)
-                            out__ << t__.y << ' ' << t__.x << ' ';
+                          for(const auto& n__ : nets__)
+                            {
+                              out__ << "[ ";
+
+                              for(const auto& t__ : n__)
+                                {
+                                  out__ << t__.y << ' ' << t__.x << ' ';
+                                }
+
+                              out__ << "] ";
+                            }
 
                           out__ << '\n' << std::flush;
 

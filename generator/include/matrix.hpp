@@ -33,6 +33,15 @@ struct Index
     return *this;
   }
 
+  friend void
+  swap(Index& lhs, Index& rhs)
+  {
+    Index tmp{ lhs.x, lhs.y, lhs.z };
+
+    lhs = rhs;
+    rhs = tmp;
+  }
+
   friend Index
   operator+(const Index& lhs, const Index& rhs)
   {
