@@ -5,14 +5,14 @@
 #include <unordered_set>
 #include <vector>
 
-namespace gen
+namespace graph
 {
 
 struct Edge
 {
   uint32_t m_weight;
-  std::size_t m_source;
-  std::size_t m_destination;
+  uint32_t m_source;
+  uint32_t m_destination;
 
   friend bool
   operator>(const Edge& lhs, const Edge& rhs)
@@ -27,14 +27,26 @@ struct Edge
   }
 };
 
-struct Graph
+class Graph
 {
+public:
+  void
+  place_node();
+
+  void
+  add_terminal(uint32_t terminal);
+
+  void
+  add_edge(uint32_t weight, uint32_t source, uint32_t destination);
+
+  std::vector<std::pair<uint32_t, uint32_t>>
+  mst() const;
+
+private:
   std::vector<std::vector<Edge>> m_adj;
-  std::unordered_set<std::size_t> m_terminals;
+  std::unordered_set<uint32_t>   m_terminals;
 };
 
-using MST = std::vector<std::pair<std::size_t, std::size_t>>;
-
-}; // namespace gen
+} // namespace graph
 
 #endif
