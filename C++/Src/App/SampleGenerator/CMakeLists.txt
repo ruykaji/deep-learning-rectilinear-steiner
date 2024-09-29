@@ -1,0 +1,2 @@
+add_executable(SampleGenerator main.cpp)
+target_link_libraries(SampleGenerator PRIVATE Ini Generator Transform Algorithms)

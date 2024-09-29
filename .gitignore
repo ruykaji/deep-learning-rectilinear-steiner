@@ -4,3 +4,10 @@
 # build folders
 build
 Output
+
+# Program
+Result
+
+# python
+__pycache__
+Training

@@ -35,7 +35,7 @@ rtrim(std::string& line)
 bool
 Section::check_key(const std::string& key) const
 {
-  return m_config.count(key) == 0;
+  return m_config.count(key) != 0;
 }
 
 /** =============================== GLOBAL FUNCTIONS ============================= */

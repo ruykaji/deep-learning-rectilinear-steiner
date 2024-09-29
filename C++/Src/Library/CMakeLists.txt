@@ -13,3 +13,11 @@ target_link_libraries(Generator PUBLIC Utils)
 
 # Graph library
 add_library(Graph Graph.cpp)
+
+# Transform library
+add_library(Transform Transform.cpp)
+target_link_libraries(Transform PUBLIC Graph Matrix)
+
+# Algorithms library
+add_library(Algorithms Algorithms.cpp)
+target_link_libraries(Algorithms PUBLIC Graph)

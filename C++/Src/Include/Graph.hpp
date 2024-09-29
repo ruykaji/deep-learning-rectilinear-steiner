@@ -15,16 +15,10 @@ struct Edge
   uint32_t m_destination;
 
   friend bool
-  operator>(const Edge& lhs, const Edge& rhs)
-  {
-    return lhs.m_weight > rhs.m_weight;
-  }
+  operator>(const Edge& lhs, const Edge& rhs);
 
   friend bool
-  operator==(const Edge& lhs, const Edge& rhs)
-  {
-    return lhs.m_source == rhs.m_source && rhs.m_destination == lhs.m_destination;
-  }
+  operator==(const Edge& lhs, const Edge& rhs);
 };
 
 class Graph
@@ -38,13 +32,15 @@ public:
 
   void
   add_edge(uint32_t weight, uint32_t source, uint32_t destination);
+  const std::vector<std::vector<Edge>>&
+  get_adj() const;
 
-  std::vector<std::pair<uint32_t, uint32_t>>
-  mst() const;
+  const std::unordered_set<uint32_t>&
+  get_terminals() const;
 
 private:
-  std::vector<std::vector<Edge>> m_adj;
-  std::unordered_set<uint32_t>   m_terminals;
+  std::vector<std::vector<Edge>>                     m_adj;
+  std::unordered_set<uint32_t>                       m_terminals;
 };
 
 } // namespace graph

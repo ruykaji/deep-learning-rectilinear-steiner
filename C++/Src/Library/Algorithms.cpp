@@ -3,9 +3,9 @@
 #include <queue>
 #include <unordered_map>
 
-#include "Include/Graph.hpp"
+#include "Include/Algorithms.hpp"
 
-namespace graph
+namespace algorithms
 {
 
 namespace details
@@ -21,7 +21,9 @@ public:
   make_set(std::size_t set) noexcept
   {
     if(exist(set))
-      return;
+      {
+        return;
+      }
 
     m_parent.emplace(set, set);
     m_rank.emplace(set, 0);
@@ -38,27 +40,36 @@ public:
   find(std::size_t k) noexcept
   {
     if(m_parent[k] != k)
-      m_parent[k] = find(m_parent[k]);
+      {
+        m_parent[k] = find(m_parent[k]);
+      }
+
     return m_parent[k];
   }
 
   void
   union_sets(std::size_t a, std::size_t b) noexcept
   {
-    std::size_t x = find(a);
-    std::size_t y = find(b);
+    const std::size_t x = find(a);
+    const std::size_t y = find(b);
 
     if(x == y)
-      return;
+      {
+        return;
+      }
 
     if(m_rank[x] < m_rank[y])
-      m_parent[x] = y;
+      {
+        m_parent[x] = y;
+      }
     else
       {
         m_parent[y] = x;
 
         if(m_rank[x] == m_rank[y])
-          ++m_rank[x];
+          {
+            ++m_rank[x];
+          }
       }
 
     --m_num_sets;
@@ -90,39 +101,23 @@ struct WeightedNode
 
 } // namespace details
 
-void
-Graph::place_node()
-{
-  m_adj.push_back({});
-}
-
-void
-Graph::add_terminal(uint32_t terminal)
-{
-  m_terminals.insert(terminal + 1);
-}
-
-void
-Graph::add_edge(uint32_t weight, uint32_t source, uint32_t destination)
-{
-  m_adj[source].emplace_back(weight, source + 1, destination + 1);
-  m_adj[destination].emplace_back(weight, destination + 1, source + 1);
-}
-
 std::vector<std::pair<uint32_t, uint32_t>>
-Graph::mst() const
+dijkstra_kruskal(const graph::Graph& graph)
 {
-  const std::size_t              num_vertices = m_adj.size();
 
-  std::vector<std::vector<Edge>> full_paths;
-  std::vector<Edge>              short_paths;
+  const auto&                           adj          = graph.get_adj();
+  const auto&                           terminals    = graph.get_terminals();
+  const std::size_t                     num_vertices = adj.size();
+
+  std::vector<std::vector<graph::Edge>> full_paths;
+  std::vector<graph::Edge>              short_paths;
 
   /** Apply Dijkstra algorithm for each of terminals */
-  for(const auto& t : m_terminals)
+  for(const auto& t : terminals)
     {
       std::vector<bool>                                                                                                   visited(num_vertices, false);
       std::vector<uint32_t>                                                                                               dist(num_vertices, std::numeric_limits<uint32_t>::max());
-      std::vector<std::vector<Edge>>                                                                                      paths(num_vertices);
+      std::vector<std::vector<graph::Edge>>                                                                               paths(num_vertices);
       std::priority_queue<details::WeightedNode, std::vector<details::WeightedNode>, std::greater<details::WeightedNode>> queue;
 
       queue.emplace(0, t);
@@ -140,7 +135,7 @@ Graph::mst() const
 
           visited[u - 1] = true;
 
-          for(const Edge& edge : m_adj[u - 1])
+          for(const graph::Edge& edge : adj[u - 1])
             {
               const uint32_t v      = edge.m_destination;
               const uint32_t weight = edge.m_weight;
@@ -156,7 +151,7 @@ Graph::mst() const
             }
         }
 
-      for(const auto& tt : m_terminals)
+      for(const auto& tt : terminals)
         {
           if(!paths[tt - 1].empty() && t != tt)
             {
@@ -180,16 +175,16 @@ Graph::mst() const
         }
     }
 
-  std::unordered_set<uint32_t>   k_terminals{ m_terminals };
-  std::vector<std::vector<Edge>> k_full_paths;
-  std::vector<Edge>              k_short_paths;
+  std::unordered_set<uint32_t>          k_terminals(terminals);
+  std::vector<std::vector<graph::Edge>> k_full_paths;
+  std::vector<graph::Edge>              k_short_paths;
 
   {
     /** Search for interconnection points in MST using Kruskal algorithm */
-    std::priority_queue<Edge, std::vector<Edge>, std::greater<Edge>> queue;
-    details::Disjoint_set                                            disjoint_set;
+    std::priority_queue<graph::Edge, std::vector<graph::Edge>, std::greater<graph::Edge>> queue;
+    details::Disjoint_set                                                                 disjoint_set;
 
-    for(const auto& t : m_terminals)
+    for(const auto& t : terminals)
       {
         disjoint_set.make_set(t);
       }
@@ -201,7 +196,7 @@ Graph::mst() const
 
     while(true)
       {
-        Edge edge = queue.top();
+        graph::Edge edge = queue.top();
         queue.pop();
 
         if(disjoint_set.find(edge.m_source) != disjoint_set.find(edge.m_destination))
@@ -210,7 +205,7 @@ Graph::mst() const
 
             for(const auto& e : full_paths[idx])
               {
-                if(m_terminals.find(e.m_destination) == m_terminals.end())
+                if(terminals.find(e.m_destination) == terminals.end())
                   {
                     if(disjoint_set.exist(e.m_destination))
                       {
@@ -236,15 +231,15 @@ Graph::mst() const
     // Recreating short and full paths considering new kruskal terminals.
     for(std::size_t i = 0; i < short_paths.size(); ++i)
       {
-        std::vector<Edge> possible_path;
-        uint32_t          possible_weight;
+        std::vector<graph::Edge> possible_path;
+        uint32_t                 possible_weight = 0;
 
         for(const auto& e : full_paths[i])
           {
             possible_path.push_back(e);
             possible_weight += e.m_weight;
 
-            if(k_terminals.find(e.m_destination) != k_terminals.end() && m_terminals.find(e.m_destination) == m_terminals.end())
+            if(k_terminals.find(e.m_destination) != k_terminals.end() && terminals.find(e.m_destination) == terminals.end())
               {
                 k_full_paths.push_back(possible_path);
                 k_short_paths.emplace_back(possible_weight, possible_path.begin()->m_source, e.m_destination);
@@ -263,8 +258,8 @@ Graph::mst() const
 
   /** Actually applying Kruskal algorithm to find final MST */
   {
-    std::priority_queue<Edge, std::vector<Edge>, std::greater<Edge>> queue;
-    details::Disjoint_set                                            disjoint_set;
+    std::priority_queue<graph::Edge, std::vector<graph::Edge>, std::greater<graph::Edge>> queue;
+    details::Disjoint_set                                                                 disjoint_set;
 
     for(const auto& t : k_terminals)
       {
@@ -278,7 +273,7 @@ Graph::mst() const
 
     while(true)
       {
-        Edge edge = queue.top();
+        graph::Edge edge = queue.top();
         queue.pop();
 
         if(disjoint_set.find(edge.m_source) != disjoint_set.find(edge.m_destination))
@@ -303,4 +298,4 @@ Graph::mst() const
   return mst;
 }
 
-} // namespace graph
+} // namespace algorithms
