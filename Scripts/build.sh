@@ -1,30 +1,42 @@
+#!/bin/bash
+
+# Set up directories
 SOURCE_DIR=$(pwd)
 RESULT_DIR="$SOURCE_DIR/Result"
 CPP_DIR="$SOURCE_DIR/C++"
 PYTHON_DIR="$SOURCE_DIR/Python"
 
-if [ -d $RESULT_DIR ]; then
-   rm -r $RESULT_DIR
-fi
+# Remove the result directory if it exists
+[ -d "$RESULT_DIR" ] && rm -r "$RESULT_DIR"
 
-# Building C++ programs
-cd $CPP_DIR
+# Create build directory for C++ programs if it doesn't exist
+BUILD_DIR="$CPP_DIR/build"
+mkdir -p "$BUILD_DIR"
 
-if [ ! -d build ]; then
-   mkdir build
-fi
-
-cd build
+# Build C++ programs
+cd "$BUILD_DIR" || exit
 cmake -DCMAKE_BUILD_TYPE=Release -DEnableTests=OFF ..
-cmake --build . --target all .
+cmake --build . --target all
 
-cd $SOURCE_DIR
+# Return to source directory
+cd "$SOURCE_DIR" || exit
 
-# Building python libraries
+# Create result directory structure
+mkdir -p "$RESULT_DIR/Program"
 
-# Make build directory
-mkdir -p $RESULT_DIR
+# Move generated binary to result directory
+mv "$CPP_DIR/Output/Release/bin/SampleGenerator" "$RESULT_DIR/Program"
 
-mkdir $RESULT_DIR/Program
-mv $CPP_DIR/Output/Release/bin/SampleGenerator $RESULT_DIR/Program
-echo "[Path]\n\nOutput = $RESULT_DIR/Assets\n\n[Generation]\n\nSize = 32\nDepth = 1\nMaxNumberOfPoints = 5\nDesiredCombinations = 10000" > $RESULT_DIR/Program/sample_generator_config.ini
+# Generate sample config file
+cat <<EOL > "$RESULT_DIR/Program/sample_generator_config.ini"
+[Path]
+
+Output = $RESULT_DIR/Assets
+
+[Generation]
+
+Size = 32
+Depth = 1
+MaxNumberOfPoints = 5
+DesiredCombinations = 10000
+EOL

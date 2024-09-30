@@ -1,43 +1,44 @@
-# Reinforcement Learning Grid Pathfinding
+# Deep Learning Rectilinear Steiner Project
 
 ## Project Description
-This project focuses on training a reinforcement learning agent to find the optimal path between two points in a grid environment with obstacles using Stable Baselines 3. The project utilizes custom environments and callbacks for effective training and monitoring.
+This project aims to solve the Rectilinear Steiner Tree Problem (RSTP) using deep learning.
 
-## Getting Started
+The project includes:
+- A **C++ Sample Generator** for creating training datasets.
+- A **Deep Learning Model** implemented in Python using `segmentation-models-pytorch`.
 
-### Prerequisites
-- Python >=3.5
-- Pip (Python package manager)
+## Prerequisites
+- **Python**: >= 3.8.
+- **GCC**: >= 12.3.0.
+- **CMake**: >= 3.19.0.
+- **Docker** (Recommended): To easily set up the environment and dependencies.
 
-### Installation
-1. **Clone the repository:**
-   ```bash
-   git clone [URL-of-your-repo]
-   cd rl-grid-pathfinding
-   ```
+## Installation
 
-2. **Install required packages:**
-   ```bash
-   pip install -r requirements.txt
-   ```
+### 1. Clone the Repository
+```bash
+git clone https://github.com/ruykaji/deep-learning-rectilinear-steiner.git
+cd deep-learning-rectilinear-steiner
+```
 
-### Project Structure
-- `envs/`: Custom environment definitions.
-- `utils/`: Utility scripts and functions.
-- `train.py`: Scripts for training models.
-- `requirements.txt`: List of Python package dependencies.
+### 2. Building
+#### Manual building
+If have installed all necessary utils, then you can just run build script.
+```bash
+sh Scripts/build.sh
+```
 
 ## Usage
 
-### Training the Agent
-To train the agent, run the script `train.py`. You can specify various parameters like grid size and total timesteps:
-
+### 1. Generate dataset
+Generator have its own config file `Results/Program/sample_generator_config.ini` that you can edit how you want.
+After you done with configuring just run the generation script.
 ```bash
-python3 train.py --num_envs 16 --bot_grid_size 16 --top_grid_size 256 --total_timesteps 5000000
+sh Scripts/generate.sh
 ```
 
-## Contributing
-Contributions to this project are welcome. Please ensure that your code adheres to the project's coding standards and submit a pull request for review.
-
-## License
-This project is licensed under the [MIT License](LICENSE).
+### 2. Train
+Run the train script.
+```bash
+sh Scripts/train.sh
+```
