@@ -94,8 +94,9 @@ main(int argc, char* argv[])
 
   const std::filesystem::path source_dir = output_directory / "Source";
   const std::filesystem::path target_dir = output_directory / "Target";
+  const std::filesystem::path nodes_dir  = output_directory / "Nodes";
 
-  for(const auto& dir : { source_dir, target_dir })
+  for(const auto& dir : { source_dir, target_dir, nodes_dir })
     {
       if(std::filesystem::exists(dir))
         {
@@ -107,6 +108,7 @@ main(int argc, char* argv[])
 
   std::cout << "  - Source directory: " << source_dir << std::endl;
   std::cout << "  - Target directory: " << target_dir << std::endl;
+  std::cout << "  - Nodes  directory: " << target_dir << std::endl;
   std::cout << "\n";
 
   /** Setup up generation settings */
@@ -166,7 +168,8 @@ main(int argc, char* argv[])
             for(; itr < itr_end; ++itr)
               {
                 /** Go trough possible combinations */
-                matrix::Matrix source_matrix({ size, size, depth });
+                matrix::Matrix       source_matrix({ size, size, depth });
+                std::vector<uint8_t> nodes_coordinates(i * 3);
 
                 /** Make bounders */
                 for(uint8_t z = 0; z < depth; ++z)
@@ -210,6 +213,9 @@ main(int argc, char* argv[])
                     const auto [c_x, c_y, c_z] = index_to_coordinates(index, size);
 
                     source_matrix.set_at(types::TERMINAL_CELL, c_x, c_y, c_z);
+                    nodes_coordinates.emplace_back(c_x);
+                    nodes_coordinates.emplace_back(c_y);
+                    nodes_coordinates.emplace_back(c_z);
 
                     bool is_x_line_free = false;
 
@@ -306,6 +312,7 @@ main(int argc, char* argv[])
 
                 numpy::save_as<uint8_t>(source_dir / matrix_name, reinterpret_cast<char*>(source_matrix.data()), { depth, size, size });
                 numpy::save_as<uint8_t>(target_dir / matrix_name, reinterpret_cast<const char*>(target_matrix.data()), { depth, size, size });
+                numpy::save_as<uint8_t>(nodes_dir / matrix_name, reinterpret_cast<const char*>(nodes_coordinates.data()), { max_number_of_points, 3 });
 
                 progress_bar.step();
               }
