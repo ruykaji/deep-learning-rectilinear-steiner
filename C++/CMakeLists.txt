@@ -4,7 +4,7 @@ project(DeepLearningRecilinearSteiner LANGUAGES CXX)
 option(EnableTests "EnableTests" ON)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-   add_definitions("-DLRS_DEBUG")
+   add_definitions("-DDLRS_DEBUG")
 endif()
 
 set(CMAKE_CXX_STANDARD 20)

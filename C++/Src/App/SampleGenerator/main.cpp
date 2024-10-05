@@ -135,14 +135,17 @@ main(int argc, char* argv[])
   std::cout << "  - Desired combinations: " << desired_combinations << std::endl;
   std::cout << "\n";
 
-  /** Generate source matrices */
+/** Generate source matrices */
 
-  /** Go trough all number of points */
-  // const std::size_t number_of_threads = 1;
+/** Go trough all number of points */
+#ifdef DLRS_DEBUG
   const std::size_t number_of_threads = 1;
-  const uint32_t    total_cells       = size * size * depth;
+#else
+  const std::size_t number_of_threads = std::thread::hardware_concurrency() / 2;
+#endif
+  const uint32_t total_cells = size * size * depth;
 
-  for(uint8_t i = 2; i <= max_number_of_points; ++i)
+  for(uint8_t i = 5; i <= max_number_of_points; ++i)
     {
       const uint64_t           possible_combinations           = gen::nCr(total_cells, i);
       const uint64_t           combinations_per_thread         = possible_combinations / number_of_threads;

@@ -15,6 +15,12 @@ operator>(const Edge& lhs, const Edge& rhs)
 }
 
 bool
+operator<(const Edge& lhs, const Edge& rhs)
+{
+  return !(lhs > rhs);
+}
+
+bool
 operator==(const Edge& lhs, const Edge& rhs)
 {
   return lhs.m_source == rhs.m_source && rhs.m_destination == lhs.m_destination;

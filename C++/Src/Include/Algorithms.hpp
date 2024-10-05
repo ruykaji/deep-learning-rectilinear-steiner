@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "Include/Graph.hpp"
+#include "Include/Matrix.hpp"
 
 namespace algorithms
 {

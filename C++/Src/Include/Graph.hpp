@@ -18,6 +18,9 @@ struct Edge
   operator>(const Edge& lhs, const Edge& rhs);
 
   friend bool
+  operator<(const Edge& lhs, const Edge& rhs);
+
+  friend bool
   operator==(const Edge& lhs, const Edge& rhs);
 };
 
@@ -39,8 +42,8 @@ public:
   get_terminals() const;
 
 private:
-  std::vector<std::vector<Edge>>                     m_adj;
-  std::unordered_set<uint32_t>                       m_terminals;
+  std::vector<std::vector<Edge>> m_adj;
+  std::unordered_set<uint32_t>   m_terminals;
 };
 
 } // namespace graph
