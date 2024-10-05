@@ -1,5 +1,5 @@
 #include <queue>
-#include <set>
+#include <unordered_set>
 #include <vector>
 
 #include <pybind11/numpy.h>
@@ -12,6 +12,31 @@ struct Cell
   int32_t x;
   int32_t y;
   int32_t z;
+
+  struct Hash
+  {
+    std::size_t
+    operator()(const Cell& t) const
+    {
+      std::size_t h1 = std::hash<int32_t>()(t.x);
+      std::size_t h2 = std::hash<int32_t>()(t.y);
+      std::size_t h3 = std::hash<int32_t>()(t.z);
+
+      return h1 ^ (h2 << 1) ^ (h3 << 2);
+    }
+  };
+
+  friend bool
+  operator==(const Cell& lhs, const Cell& rhs)
+  {
+    return lhs.x == rhs.x && lhs.y == rhs.y && lhs.z == rhs.z;
+  }
+
+  friend bool
+  operator!=(const Cell& lhs, const Cell& rhs)
+  {
+    return !(lhs == rhs);
+  }
 };
 
 bool
@@ -41,12 +66,12 @@ single_net_check_connectivity(py::array_t<int32_t> matrices, py::array_t<int32_t
       throw std::runtime_error("Batch size of matrices and target cells must match");
     }
 
-  double        result     = 0.0;
+  double result = 0.0;
 
   for(ssize_t batch_index = 0, batch_size = matrix_buf.shape[0]; batch_index < batch_size; ++batch_index)
     {
-      std::set<std::tuple<int32_t, int32_t, int32_t>> target_set;
-      const int32_t* const                            target_ptr = static_cast<int32_t*>(target_buf.ptr) + batch_index * target_buf.shape[1] * 3;
+      std::unordered_set<Cell, Cell::Hash> target_set;
+      const int32_t* const                 target_ptr = static_cast<int32_t*>(target_buf.ptr) + batch_index * target_buf.shape[1] * 3;
 
       for(ssize_t i = 0, end = target_buf.shape[1]; i < end; ++i)
         {
@@ -62,46 +87,81 @@ single_net_check_connectivity(py::array_t<int32_t> matrices, py::array_t<int32_t
           target_set.insert({ x, y, z });
         }
 
-      std::queue<Cell>                                queue;
-      std::set<std::tuple<int32_t, int32_t, int32_t>> visited;
+      std::queue<std::pair<Cell, Cell>>    queue;
+      std::unordered_set<Cell, Cell::Hash> visited;
 
-      const auto                                      start = *target_set.begin();
+      const auto                           start = *target_set.begin();
 
-      queue.push({ std::get<0>(start), std::get<1>(start), std::get<2>(start) });
+      queue.push({ start, { 0, 0, 0 } });
       visited.insert(start);
       target_set.erase(start);
 
-      const std::vector<Cell> directions = { { 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 }, { 0, 0, -1 } };
-      const int32_t* const    matrix_ptr = static_cast<int32_t*>(matrix_buf.ptr) + batch_index * matrix_buf.shape[1] * matrix_buf.shape[2] * matrix_buf.shape[3];
+      const std::vector<Cell> directions        = { { 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 }, { 0, 0, -1 } };
+      const int32_t* const    matrix_ptr        = static_cast<int32_t*>(matrix_buf.ptr) + batch_index * matrix_buf.shape[1] * matrix_buf.shape[2] * matrix_buf.shape[3];
+      const std::size_t       total_targets     = target_set.size();
 
-      while(!queue.empty())
+      std::size_t             targets_connected = 0;
+      double                  score             = 0.0;
+      bool                    end               = false;
+
+      while(!queue.empty() && !end)
         {
-          const Cell current = std::move(queue.front());
+          const auto [current, parent] = queue.front();
           queue.pop();
 
           for(const auto& dir : directions)
             {
-              const int32_t                               nx       = current.x + dir.x;
-              const int32_t                               ny       = current.y + dir.y;
-              const int32_t                               nz       = current.z + dir.z;
-              const std::tuple<int32_t, int32_t, int32_t> neighbor = { nx, ny, nz };
+              const int32_t nx       = current.x + dir.x;
+              const int32_t ny       = current.y + dir.y;
+              const int32_t nz       = current.z + dir.z;
+              const Cell    neighbor = { nx, ny, nz };
 
-              if(is_valid(nx, ny, nz, matrix_buf) && visited.find(neighbor) == visited.end())
+              if(!is_valid(nx, ny, nz, matrix_buf))
                 {
-                  ssize_t offset = nz * matrix_buf.shape[2] * matrix_buf.shape[3] + ny * matrix_buf.shape[3] + nx;
+                  continue;
+                }
 
-                  if(matrix_ptr[offset] != 0)
+              ssize_t offset = nz * matrix_buf.shape[2] * matrix_buf.shape[3] + ny * matrix_buf.shape[3] + nx;
+
+              if(matrix_ptr[offset] == 0)
+                {
+                  continue;
+                }
+
+              if(visited.find(neighbor) != visited.end())
+                {
+                  if(neighbor != parent)
                     {
-                      visited.insert(neighbor);
-                      queue.push({ nx, ny, nz });
+                      end = true;
+                      break;
+                    }
 
-                      target_set.erase(neighbor);
+                  continue;
+                }
+
+              visited.insert(neighbor);
+              queue.push({ neighbor, current });
+
+              if(target_set.find(neighbor) != target_set.end())
+                {
+                  ++targets_connected;
+
+                  if(targets_connected == total_targets)
+                    {
+                      end   = true;
+                      score = 1.0;
+                      break;
                     }
                 }
             }
+
+          if(end)
+            {
+              break;
+            }
         }
 
-      result += target_set.empty() ? 1.0 : 0.0;
+      result += score;
     }
 
   return result;

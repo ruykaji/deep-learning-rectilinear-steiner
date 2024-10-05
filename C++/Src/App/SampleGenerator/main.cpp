@@ -139,7 +139,7 @@ main(int argc, char* argv[])
 
   /** Go trough all number of points */
   // const std::size_t number_of_threads = 1;
-  const std::size_t number_of_threads = std::thread::hardware_concurrency() / 2;
+  const std::size_t number_of_threads = 1;
   const uint32_t    total_cells       = size * size * depth;
 
   for(uint8_t i = 2; i <= max_number_of_points; ++i)
@@ -169,7 +169,7 @@ main(int argc, char* argv[])
               {
                 /** Go trough possible combinations */
                 matrix::Matrix       source_matrix({ size, size, depth });
-                std::vector<uint8_t> nodes_coordinates(i * 3);
+                std::vector<uint8_t> nodes_coordinates(i * 3, 0);
 
                 /** Make bounders */
                 for(uint8_t z = 0; z < depth; ++z)
@@ -207,15 +207,19 @@ main(int argc, char* argv[])
                     source_matrix.set_at(types::INTERSECTION_CELL, size - 1, size - 1, z);
                   }
 
+                std::size_t index_counter = 0;
+
                 /** Fill the matrix */
                 for(auto index : *itr)
                   {
                     const auto [c_x, c_y, c_z] = index_to_coordinates(index, size);
 
                     source_matrix.set_at(types::TERMINAL_CELL, c_x, c_y, c_z);
-                    nodes_coordinates.emplace_back(c_x);
-                    nodes_coordinates.emplace_back(c_y);
-                    nodes_coordinates.emplace_back(c_z);
+
+                    nodes_coordinates[index_counter * 3]     = c_x;
+                    nodes_coordinates[index_counter * 3 + 1] = c_y;
+                    nodes_coordinates[index_counter * 3 + 2] = c_z;
+                    ++index_counter;
 
                     bool is_x_line_free = false;
 
