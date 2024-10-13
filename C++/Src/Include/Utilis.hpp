@@ -18,11 +18,11 @@ public:
   step();
 
 private:
-  std::size_t             m_total_steps;
-  std::string             m_message;
-  std::size_t             m_progress;
-  bool                    m_done;
-  std::mutex              m_mutex;
+  std::size_t m_total_steps;
+  std::string m_message;
+  std::size_t m_progress;
+  bool        m_done;
+  std::mutex  m_mutex;
 };
 
 } // namespace utils

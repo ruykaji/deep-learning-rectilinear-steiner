@@ -12,7 +12,7 @@ SyncProgressBar::SyncProgressBar(const std::size_t total_steps, const std::strin
 SyncProgressBar::~SyncProgressBar()
 {
   std::lock_guard lock(m_mutex);
-  std::cout << "\r" << m_message << ": [" << std::string(50, '=') << "] 100%\n";
+  std::cout << "\r" << m_message << ": [" << std::string(50, '=') << "] 100% (" << m_progress << " of " << m_total_steps << ")\n";
   std::cout.flush();
 }
 
@@ -29,7 +29,7 @@ SyncProgressBar::step()
         {
           uint32_t percent = (m_progress * 100) / m_total_steps;
 
-          std::cout << "\r" << m_message << ": [" << std::string(percent / 2, '=') << std::string(50 - percent / 2, ' ') << "] " << percent << "%";
+          std::cout << "\r" << m_message << ": [" << std::string(percent / 2, '=') << std::string(50 - percent / 2, ' ') << "] " << percent << "% (" << m_progress << " of " << m_total_steps << ")";
           std::cout.flush();
         }
       else

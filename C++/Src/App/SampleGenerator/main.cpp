@@ -145,7 +145,7 @@ main(int argc, char* argv[])
 #endif
   const uint32_t total_cells = size * size * depth;
 
-  for(uint8_t i = 5; i <= max_number_of_points; ++i)
+  for(uint8_t i = 2; i <= max_number_of_points; ++i)
     {
       const uint64_t           possible_combinations           = gen::nCr(total_cells, i);
       const uint64_t           combinations_per_thread         = possible_combinations / number_of_threads;
@@ -172,7 +172,7 @@ main(int argc, char* argv[])
               {
                 /** Go trough possible combinations */
                 matrix::Matrix       source_matrix({ size, size, depth });
-                std::vector<uint8_t> nodes_coordinates(i * 3, 0);
+                std::vector<uint8_t> nodes_coordinates(max_number_of_points * 3, 0);
 
                 /** Make bounders */
                 for(uint8_t z = 0; z < depth; ++z)
