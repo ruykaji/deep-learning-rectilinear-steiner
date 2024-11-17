@@ -116,6 +116,7 @@ main(int argc, char* argv[])
 
   uint8_t  size                 = 32;
   uint8_t  depth                = 1;
+  uint8_t  min_number_of_points = 2;
   uint8_t  max_number_of_points = 4;
   uint32_t desired_combinations = 100;
 
@@ -125,12 +126,14 @@ main(int argc, char* argv[])
 
       size                   = get_config_number<uint8_t>(gs, "Size", size, 1, UINT8_MAX, "Size must be between 1 and 255.");
       depth                  = get_config_number<uint8_t>(gs, "Depth", depth, 1, UINT8_MAX, "Depth must be between 1 and 255.");
+      min_number_of_points   = get_config_number<uint8_t>(gs, "MinNumberOfPoints", min_number_of_points, 1, UINT8_MAX, "MinNumberOfPoints must be between 1 and 255.");
       max_number_of_points   = get_config_number<uint8_t>(gs, "MaxNumberOfPoints", max_number_of_points, 1, UINT8_MAX, "MaxNumberOfPoints must be between 1 and 255.");
       desired_combinations   = get_config_number<uint32_t>(gs, "DesiredCombinations", desired_combinations, 1, UINT32_MAX, "DesiredCombinations must be between 1 and 4294967295.");
     }
 
   std::cout << "  - Size                : " << uint32_t(size) << std::endl;
   std::cout << "  - Depth               : " << uint32_t(depth) << std::endl;
+  std::cout << "  - Min number of points: " << uint32_t(min_number_of_points) << std::endl;
   std::cout << "  - Max number of points: " << uint32_t(max_number_of_points) << std::endl;
   std::cout << "  - Desired combinations: " << desired_combinations << std::endl;
   std::cout << "\n";
@@ -145,7 +148,7 @@ main(int argc, char* argv[])
 #endif
   const uint32_t total_cells = size * size * depth;
 
-  for(uint8_t i = 2; i <= max_number_of_points; ++i)
+  for(uint8_t i = min_number_of_points; i <= max_number_of_points; ++i)
     {
       const uint64_t           possible_combinations           = gen::nCr(total_cells, i);
       const uint64_t           combinations_per_thread         = possible_combinations / number_of_threads;
@@ -170,50 +173,19 @@ main(int argc, char* argv[])
 
             for(; itr < itr_end; ++itr)
               {
+                const std::vector<uint32_t> indices = *itr;
+
                 /** Go trough possible combinations */
-                matrix::Matrix       source_matrix({ size, size, depth });
-                std::vector<uint8_t> nodes_coordinates(max_number_of_points * 3, 0);
+                matrix::Matrix              source_matrix({ size, size, depth });
+                std::vector<uint8_t>        nodes_coordinates(max_number_of_points * 3, 0);
 
-                /** Make bounders */
-                for(uint8_t z = 0; z < depth; ++z)
-                  {
-                    for(uint8_t x = 0; x < size; ++x)
-                      {
-                        source_matrix.set_at(types::TRACE_CELL, x, 0, z);
-                      }
+                std::size_t                 index_counter = 0;
 
-                    for(uint8_t x = 0; x < size; ++x)
-                      {
-                        source_matrix.set_at(types::TRACE_CELL, x, size - 1, z);
-                      }
-
-                    for(uint8_t y = 0; y < size; ++y)
-                      {
-                        source_matrix.set_at(types::TRACE_CELL, 0, y, z);
-                      }
-
-                    for(uint8_t y = 0; y < size; ++y)
-                      {
-                        source_matrix.set_at(types::TRACE_CELL, size - 1, y, z);
-                      }
-
-                    /** Left Top */
-                    source_matrix.set_at(types::INTERSECTION_CELL, 0, 0, z);
-
-                    /** Right Top */
-                    source_matrix.set_at(types::INTERSECTION_CELL, size - 1, 0, z);
-
-                    /** Left bottom  */
-                    source_matrix.set_at(types::INTERSECTION_CELL, 0, size - 1, z);
-
-                    /** Right bottom */
-                    source_matrix.set_at(types::INTERSECTION_CELL, size - 1, size - 1, z);
-                  }
-
-                std::size_t index_counter = 0;
+                std::size_t                 x_collisions  = 0;
+                std::size_t                 y_collisions  = 0;
 
                 /** Fill the matrix */
-                for(auto index : *itr)
+                for(const auto index : indices)
                   {
                     const auto [c_x, c_y, c_z] = index_to_coordinates(index, size);
 
@@ -224,58 +196,113 @@ main(int argc, char* argv[])
                     nodes_coordinates[index_counter * 3 + 2] = c_z;
                     ++index_counter;
 
-                    bool is_x_line_free = false;
+                    bool   is_x_blocked       = false;
+                    int8_t y_access_direction = 0;
 
-                    for(uint8_t x = 0; x < size; ++x)
+                    bool   is_y_blocked       = false;
+                    int8_t x_access_direction = 0;
+
+                    for(const auto index_s : indices)
                       {
-                        if(source_matrix.get_at(x, c_y, c_z) == 0)
+                        if(index != index_s)
                           {
-                            is_x_line_free = true;
+                            const auto [c_x_s, c_y_s, c_z_s] = index_to_coordinates(index_s, size);
+
+                            if(!is_y_blocked && std::abs(c_x_s - c_x) == 1)
+                              {
+                                if(c_x % 2 == 0)
+                                  {
+                                    is_y_blocked       = true;
+                                    x_access_direction = c_x_s < c_x ? (c_x > 0 ? -1 : 0) : (c_x < (size - 1) ? 1 : 0);
+                                  }
+                              }
+
+                            if(!is_x_blocked && std::abs(c_y_s - c_y) == 1)
+                              {
+                                if(c_y % 2 == 0)
+                                  {
+                                    is_x_blocked       = true;
+                                    y_access_direction = c_y_s < c_y ? (c_y > 0 ? -1 : 0) : (c_y < (size - 1) ? 1 : 0);
+                                  }
+                              }
+                          }
+
+                        if(is_x_blocked && is_y_blocked)
+                          {
                             break;
                           }
                       }
 
-                    if(is_x_line_free)
+                    if(is_x_blocked && is_y_blocked)
                       {
+                        if(x_access_direction != 0)
+                          {
+                            source_matrix.set_at(types::INTERSECTION_CELL, c_x + x_access_direction, c_y, c_z);
+                          }
+                        else if(y_access_direction)
+                          {
+                            source_matrix.set_at(types::INTERSECTION_CELL, c_x, c_y + y_access_direction, c_z);
+                          }
+                      }
+
+                    if(!is_x_blocked)
+                      {
+                        bool is_x_line_free = false;
+
                         for(uint8_t x = 0; x < size; ++x)
                           {
-                            const uint8_t& value = source_matrix.get_at(x, c_y, c_z);
-
-                            if(value == 0)
+                            if(source_matrix.get_at(x, c_y, c_z) == 0)
                               {
-                                source_matrix.set_at(types::TRACE_CELL, x, c_y, c_z);
-                              }
-                            else if(value != types::TERMINAL_CELL && c_y != 0 && c_y != size - 1)
-                              {
-                                source_matrix.set_at(types::INTERSECTION_CELL, x, c_y, c_z);
+                                is_x_line_free = true;
+                                break;
                               }
                           }
-                      }
 
-                    bool is_y_line_free = false;
-
-                    for(uint8_t y = 0; y < size; ++y)
-                      {
-                        if(source_matrix.get_at(c_x, y, c_z) == 0)
+                        if(is_x_line_free)
                           {
-                            is_y_line_free = true;
-                            break;
+                            for(uint8_t x = 0; x < size; ++x)
+                              {
+                                const uint8_t& value = source_matrix.get_at(x, c_y, c_z);
+
+                                if(value == 0)
+                                  {
+                                    source_matrix.set_at(types::TRACE_CELL, x, c_y, c_z);
+                                  }
+                                else if(value != types::TERMINAL_CELL)
+                                  {
+                                    source_matrix.set_at(types::INTERSECTION_CELL, x, c_y, c_z);
+                                  }
+                              }
                           }
                       }
 
-                    if(is_y_line_free)
+                    if(!is_y_blocked)
                       {
+                        bool is_y_line_free = false;
+
                         for(uint8_t y = 0; y < size; ++y)
                           {
-                            const uint8_t& value = source_matrix.get_at(c_x, y, c_z);
-
-                            if(value == 0)
+                            if(source_matrix.get_at(c_x, y, c_z) == 0)
                               {
-                                source_matrix.set_at(types::TRACE_CELL, c_x, y, c_z);
+                                is_y_line_free = true;
+                                break;
                               }
-                            else if(value != types::TERMINAL_CELL && c_x != 0 && c_x != size - 1)
+                          }
+
+                        if(is_y_line_free)
+                          {
+                            for(uint8_t y = 0; y < size; ++y)
                               {
-                                source_matrix.set_at(types::INTERSECTION_CELL, c_x, y, c_z);
+                                const uint8_t& value = source_matrix.get_at(c_x, y, c_z);
+
+                                if(value == 0)
+                                  {
+                                    source_matrix.set_at(types::TRACE_CELL, c_x, y, c_z);
+                                  }
+                                else if(value != types::TERMINAL_CELL)
+                                  {
+                                    source_matrix.set_at(types::INTERSECTION_CELL, c_x, y, c_z);
+                                  }
                               }
                           }
                       }
@@ -309,8 +336,8 @@ main(int argc, char* argv[])
                       }
                   }
 
-                const auto [source_graph, nodes]                               = transform::matrix_to_graph(source_matrix);
-                const std::vector<std::pair<uint32_t, uint32_t>> mst           = algorithms::dijkstra_kruskal(source_graph);
+                const auto [source_graph, nodes]                               = transform::matrix_to_graph(source_matrix, index_to_coordinates(indices[0], size));
+                const std::vector<std::pair<uint32_t, uint32_t>> mst           = algorithms::dijkstra_kruskal_greedy(source_graph);
                 const matrix::Matrix                             target_matrix = transform::mst_to_matrix({ size, size, depth }, mst, nodes);
 
                 counter.fetch_add(1);

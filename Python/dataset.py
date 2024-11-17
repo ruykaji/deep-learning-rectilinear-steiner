@@ -31,7 +31,7 @@ class SimpleDataset(Dataset):
 
         self.max_pixel_value = 5
 
-        self.preloaded_data = {}
+        self.preloaded_data = [i for i in range(len(self.source_files))]
         self._preload_data()
 
     def _preload_data(self):
@@ -56,7 +56,7 @@ class SimpleDataset(Dataset):
 
     def __len__(self):
         """Returns the total number of npy files in the dataset."""
-        return len(self.source_files)
+        return len(self.preloaded_data)
 
     def __getitem__(self, idx):
         """
@@ -67,7 +67,7 @@ class SimpleDataset(Dataset):
             Tuple (source_data, target_data): A tuple of the source and target data tensors.
         """
 
-        if idx in self.preloaded_data:
+        if idx < len(self.preloaded_data):
             return self.preloaded_data[idx]
 
         source_npy_path = os.path.join(self.source_dir, self.source_files[idx])
@@ -82,4 +82,4 @@ class SimpleDataset(Dataset):
         nodes_data = np.load(nodes_npy_path)
         nodes_tensor = torch.from_numpy(nodes_data).type(torch.float32)
 
-        return source_tensor, target_tensor, nodes_data
+        return source_tensor, target_tensor, nodes_tensor

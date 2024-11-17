@@ -27,7 +27,7 @@ struct TupleHash
 } // namespace details
 
 std::pair<graph::Graph, std::vector<std::tuple<uint8_t, uint8_t, uint8_t>>>
-matrix_to_graph(const matrix::Matrix& matrix)
+matrix_to_graph(const matrix::Matrix& matrix, const std::tuple<uint8_t, uint8_t, uint8_t>& inital_state)
 {
   /** TODO: Add iterator for coordinates */
   std::vector<std::tuple<uint8_t, uint8_t, uint8_t>>                                      nodes;
@@ -36,7 +36,6 @@ matrix_to_graph(const matrix::Matrix& matrix)
   matrix::Shape                                                                           shape = matrix.shape();
   graph::Graph                                                                            graph;
 
-  std::tuple<uint8_t, uint8_t, uint8_t>                                                   inital_state = { 0, 0, 0 };
   std::queue<std::tuple<uint8_t, uint8_t, uint8_t>>                                       queue;
 
   node_map[inital_state] = nodes.size();
@@ -112,6 +111,11 @@ matrix_to_graph(const matrix::Matrix& matrix)
                 graph.add_terminal(dest_idx);
               }
 
+            break;
+          }
+
+        if(matrix_value != types::TRACE_CELL)
+          {
             break;
           }
       }

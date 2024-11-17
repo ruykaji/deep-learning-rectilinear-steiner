@@ -3,6 +3,7 @@
 
 #include <mutex>
 #include <string>
+#include <chrono>
 
 namespace utils
 {
@@ -23,6 +24,7 @@ private:
   std::size_t m_progress;
   bool        m_done;
   std::mutex  m_mutex;
+  std::chrono::_V2::steady_clock::time_point m_start_time;
 };
 
 } // namespace utils

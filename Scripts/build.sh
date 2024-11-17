@@ -37,6 +37,7 @@ Output = $RESULT_DIR/Assets
 
 Size = 32
 Depth = 1
+MinNumberOfPoints = 2
 MaxNumberOfPoints = 5
 DesiredCombinations = 10000
 EOL

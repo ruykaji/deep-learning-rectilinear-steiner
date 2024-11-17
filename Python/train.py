@@ -42,7 +42,7 @@ def visualize_results(dataset, model, name, device):
         output = model(data)
 
     output = torch.sigmoid(output)
-    output = (output > 0.5).float()
+    output = (output > 0.45).float()
 
     data_np = (TRANSFORM_RESIZE(data).cpu().squeeze(0).permute(1, 2, 0).numpy() * 255).astype(int)
     target_np = (TRANSFORM_RESIZE(target).cpu().permute(1, 2, 0).numpy() * 255).astype(int)
@@ -102,13 +102,13 @@ def train_model(model, train_loader, val_loader, device, num_epochs, fold):
                 loss = smp.losses.DiceLoss('multilabel')(outputs, targets)
                 val_loss += loss.item() * data.size(0)
 
-                outputs_np = (TRANSFORM_RESIZE((torch.sigmoid(outputs.detach()) > 0.5).float()).cpu().numpy()).astype(int)
+                outputs_np = (TRANSFORM_RESIZE((torch.sigmoid(outputs.detach()) > 0.45).float()).cpu().numpy()).astype(int)
                 connectivity_loss += connectivity.single_net_check_connectivity(outputs_np, nodes)
 
         val_loss /= len(val_loader.dataset)
         connectivity_loss /= len(val_loader.dataset)
 
-        logger.info(f'\n\nEpoch {epoch + 1}/{num_epochs}, Train Loss: {train_loss:.4f}, Validation Dice Loss: {val_loss:.4f}, Connectivity score: {connectivity_loss:.4f}')
+        logger.info(f'Epoch {epoch + 1}/{num_epochs}, Train Loss: {train_loss:.4f}, Validation Dice Loss: {val_loss:.4f}, Connectivity score: {connectivity_loss:.4f}')
 
         if connectivity_loss > best_val_loss:
             logger.info(f'Validation loss decreased ({best_val_loss:.6f} --> {connectivity_loss:.6f}). Saving model...')
@@ -120,7 +120,7 @@ def train_model(model, train_loader, val_loader, device, num_epochs, fold):
         visualize_results(train_loader.dataset, model, f"train_example_fold_{fold + 1}_epoch_{epoch + 1}", device)
 
         scheduler.step()
-
+        print()
 
 def reset_weights(m):
     """Reset model weights to avoid weight leakage between folds."""
@@ -149,7 +149,7 @@ def k_fold_training(dataset, model_class, device, k, num_epochs):
 
 def get_model():
     """Return a U-Net model."""
-    return smp.Unet(encoder_name="efficientnet-b3", encoder_weights="imagenet", in_channels=1, classes=1)
+    return smp.Unet(encoder_name="resnet34", encoder_weights="imagenet", in_channels=1, classes=1)
 
 
 if __name__ == "__main__":

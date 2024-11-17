@@ -15,7 +15,7 @@ namespace transform
  * @return std::pair<graph::Graph, std::vector<std::tuple<uint8_t, uint8_t, uint8_t>>>
  */
 std::pair<graph::Graph, std::vector<std::tuple<uint8_t, uint8_t, uint8_t>>>
-matrix_to_graph(const matrix::Matrix& matrix);
+matrix_to_graph(const matrix::Matrix& matrix, const std::tuple<uint8_t, uint8_t, uint8_t>& inital_state);
 
 /**
  * @brief Constructs a matrix from a given graph.
